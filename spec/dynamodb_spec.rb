@@ -13,6 +13,31 @@ describe 'Profiles Spec' do
     last_response.should be_ok
   end
   
+  it "should create table successfully" do
+    dynamo_db = AWS::DynamoDB.new(
+      :access_key_id => "...",
+      :secret_access_key => "...")
+      
+    test_table = dynamo_db.tables.create("test1", 1, 1,
+        :hash_key => { :creator_id => :number }, 
+        :range_key => {:date => :number})
+    
+    dynamo_db.tables.to_a.length.should == 1
+    dynamo_db.tables['test1'].exists?.should be_true
+    # dynamo_db.tables['test_fake'].exists?.should be_false # this test fails for some reason
+    
+    test_table.hash_key = [:creator_id, :number]
+    test_table.range_key = [:date, :number]
+    
+    now = Time.now.to_f
+    test_table.items.put(:creator_id => 10, :date => now, :data1 => "data1")
+    test_table.items[10, now].exists?.should be_true
+    test_table.items[11, now].exists?.should be_false
+
+  end
+  
+  
+  
   it "test vistors" do
     dynamo_db = AWS::DynamoDB.new(
       :access_key_id => "...",

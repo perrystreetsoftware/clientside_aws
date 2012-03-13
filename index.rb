@@ -35,6 +35,7 @@ helpers do
   def describe_table(args)
     table_name = args["TableName"]
     key_schema = get_key_schema(table_name)
+    halt 404 unless key_schema and key_schema.keys.length > 0
     {:Table => 
         {:CreationDateTime => (Time.now.to_i * 1000),        
          :ItemCount => 0,
@@ -48,7 +49,7 @@ helpers do
         :TableSizeBytes => 1,
         :TableStatus => "ACTIVE"
         }
-    }.to_json    
+    }.to_json   
   end
   
   def create_table(args)
@@ -152,7 +153,7 @@ helpers do
     
     record_value = record_id ? JSON.parse(DYNAMODB_REDIS.get "tables.#{args['TableName']}.#{record_id}") : nil
     
-    return {:Item => record_value, :ReadsUsed => 1}.to_json
+    return record_value ? {:Item => record_value, :ReadsUsed => 1}.to_json : {}.to_json
   end
   
   def get_rangekey_value(rangekey)
