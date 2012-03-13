@@ -46,5 +46,5 @@ end
 
 def clean_redis
   raise "cannot flush" unless ENV['RACK_ENV'] == "test"  
-  REDIS.flushdb
+  DYNAMODB_REDIS.flushdb
 end
