@@ -40,6 +40,21 @@ describe 'Profiles Spec' do
       puts "#{item.attributes['target_id'].to_i} at #{Time.at(item.attributes['date'].to_f).to_s}"
     end
 
+    # --
+    visitors2_table = dynamo_db.tables.create("visitors2", 10, 5,
+        :hash_key => { :profile_id => :number }, 
+        :range_key => {:date_profile => :string})
+    visitors2_table.hash_key = [:profile_id, :number]
+    visitors2_table.range_key = [:date_profile, :string]
+    
+    profile_id = 1000
+    (0..10).each do |idx|      
+      timestamp = Time.now.to_f - (60 * idx)
+      visitors2_table.items.put(:profile_id => idx, :date_profile => "#{timestamp}:#{profile_id}", :target_id => profile_id)
+    end
+    results = visitors2_table.items.query(:hash_value => 1)
+    puts results.to_a.inspect
+        
     # visited_table = dynamo_db.tables.create("visited", 10, 5,
     #     :hash_key => { :creator_id => :number }, 
     #     :range_key => {:date => :number})

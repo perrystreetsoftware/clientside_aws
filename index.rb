@@ -108,9 +108,8 @@ helpers do
     DYNAMODB_REDIS.hset "tables.#{args['TableName']}.hashkey_index", hashkey_value, record_id
     
     if rangekey
-      rangekey_value = BigDecimal(args["Item"][rangekey["AttributeName"]]["N"])
+      rangekey_value = get_rangekey_value(args["Item"][rangekey["AttributeName"]])
       DYNAMODB_REDIS.hset "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value, record_id
-      DYNAMODB_REDIS.zadd "tables.#{args['TableName']}.rangekey_index.#{hashkey_value}", rangekey_value, record_id
     end
     
     return {
@@ -127,8 +126,6 @@ helpers do
     rangekey_value = nil
     
     halt 500 unless args['Key'].has_key?("HashKeyElement")
-    
-    puts "Args is #{args.inspect}"
     
     if args['Key']['HashKeyElement'].has_key?('S')
       hashkey_value = args['Key']['HashKeyElement']['S']
@@ -157,7 +154,17 @@ helpers do
     
     return {:Item => record_value, :ReadsUsed => 1}.to_json
   end
+  
+  def get_rangekey_value(rangekey)
+    if rangekey.has_key?("N")
+      rangekey_value = BigDecimal(rangekey["N"])
+    else
+      rangekey_value = rangekey["S"]
+    end    
     
+    return rangekey_value
+  end
+  
   def query(args)
     halt 500, 'no table name' unless args['TableName']
     halt 500, 'no hash key value' unless args['HashKeyValue']
@@ -182,31 +189,29 @@ helpers do
     end
     
     if args.has_key?("RangeKeyCondition")
+      rangekeys = DYNAMODB_REDIS.hkeys "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}"
+
       if args["RangeKeyCondition"]["ComparisonOperator"] == "LT"
-        rangekey_value = BigDecimal(args["RangeKeyCondition"]["AttributeValueList"].first["N"])
-        record_ids = (DYNAMODB_REDIS.zrangebyscore("tables.#{args['TableName']}.rangekey_index.#{hashkey_value}", 0, rangekey_value)).map{|record_id|
-            "tables.#{args['TableName']}.#{record_id}"
-          }
-        items = record_ids.length > 0 ? (DYNAMODB_REDIS.mget *record_ids).map{|i| JSON.parse(i)} : []
+        rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
+        valid_rangekeys = rangekeys.select{|rk| (rk <=> rangekey_value) == -1}.sort
       elsif args["RangeKeyCondition"]["ComparisonOperator"] == "EQ"
-        rangekey_value = BigDecimal(args["RangeKeyCondition"]["AttributeValueList"].first["N"])
-        record_ids = (DYNAMODB_REDIS.zrangebyscore("tables.#{args['TableName']}.rangekey_index.#{hashkey_value}", rangekey_value, rangekey_value)).map{|record_id|
-            "tables.#{args['TableName']}.#{record_id}"
-          }
-        items = record_ids.length > 0 ? (DYNAMODB_REDIS.mget *record_ids).map{|i| JSON.parse(i)} : []
+        rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
+        valid_rangekeys = rangekeys.select{|rk| (rk <=> rangekey_value) == 0}
       elsif args["RangeKeyCondition"]["ComparisonOperator"] == "BETWEEN"
-        first_rangekey_value = BigDecimal(args["RangeKeyCondition"]["AttributeValueList"].first["N"])
-        last_rangekey_value = BigDecimal(args["RangeKeyCondition"]["AttributeValueList"].last["N"])
-        record_ids = (DYNAMODB_REDIS.zrangebyscore("tables.#{args['TableName']}.rangekey_index.#{hashkey_value}", first_rangekey_value, last_rangekey_value)).map{|record_id|
-            "tables.#{args['TableName']}.#{record_id}"
-          }
-        items = record_ids.length > 0 ? (DYNAMODB_REDIS.mget *record_ids).map{|i| JSON.parse(i)} : []
+        first_rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
+        last_rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].last)
+        valid_rangekeys = rangekeys.select{|rk| (rk <=> first_rangekey_value) >= 0 and (rk <=> last_rangekey_value) <= 0}
       end
+      record_ids = (DYNAMODB_REDIS.hmget("tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", *valid_rangekeys)).map{|record_id|
+        "tables.#{args['TableName']}.#{record_id}"
+        }
+      items = record_ids.length > 0 ? (DYNAMODB_REDIS.mget *record_ids).map{|i| JSON.parse(i)} : []
     else
       record_ids = DYNAMODB_REDIS.hvals("tables.#{args['TableName']}.hashkey_index.#{hashkey_value}")
       keys = record_ids.map{|item|
         "tables.#{args['TableName']}.#{item}"
         }
+      profiles = DYNAMODB_REDIS.mget(*keys)
       items = keys.length > 0 ? DYNAMODB_REDIS.mget(*keys).map{|i| JSON.parse(i)} : []
     end
     
@@ -233,11 +238,11 @@ helpers do
     
     if scan_index_forward and rangekey_name
       items.sort!{|a,b|
-        BigDecimal(a[rangekey_name]['N']) <=> BigDecimal(b[rangekey_name]['N'])
+        get_rangekey_value(a[rangekey_name]) <=> get_rangekey_value(b[rangekey_name])
       }
     elsif not scan_index_forward and rangekey_name
       items.sort!{|a,b|
-        BigDecimal(b[rangekey_name]['N']) <=> BigDecimal(a[rangekey_name]['N'])
+        get_rangekey_value(b[rangekey_name]) <=> get_rangekey_value(a[rangekey_name])
       }
     end
     
@@ -270,11 +275,8 @@ helpers do
       hashkey_value = BigDecimal(args['Key']['HashKeyElement']['S'])
     end
     
-    rangekey_value = nil
-    if args['Key']['RangeKeyElement'].has_key?("N")
-      rangekey_value = BigDecimal(args['Key']['RangeKeyElement']['N'])
-    end
-    
+    rangekey_value = get_rangekey_value(args['Key']['RangeKeyElement'])
+        
     if hashkey_value and rangekey_value
       record_id = DYNAMODB_REDIS.hget "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value      
     else
@@ -286,7 +288,6 @@ helpers do
       DYNAMODB_REDIS.hdel "tables.#{args['TableName']}.hashkey_index", hashkey_value
       if rangekey_value
         DYNAMODB_REDIS.hdel "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value
-        DYNAMODB_REDIS.zrem "tables.#{args['TableName']}.rangekey_index.#{hashkey_value}", record_id
       end
       item = JSON.parse(DYNAMODB_REDIS.get "tables.#{args['TableName']}.#{record_id}")
       DYNAMODB_REDIS.del "tables.#{args['TableName']}.#{record_id}"
