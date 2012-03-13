@@ -21,6 +21,10 @@ To launch this code standalone, run:
 
 That will launch sinatra and run the code on localhost:4567
 
+Overview
+--------
+
+This code works by overwriting the DynamoDB service URL in the aws-sdk gem, then monkeypatching the AWS::Core::Client request methods to use Rack's put, get, post and delete methods (see dynamodb_mock.rb). This points to a Sinatra endpoint that processes the DynamoDB requests. Provided you are using the DynamoDB methods defined in aws-sdk, when running tests and validations, the ruby client never knows it isn't talking to the real service.
 
 TODO
 --------------------
@@ -37,5 +41,4 @@ I also have very a limited test suite; I will expand as I can. Feel free to fork
 
 * * *
 
-Eric Silverberg
-March 2012
+Eric Silverberg, March 2012
