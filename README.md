@@ -32,7 +32,6 @@ TODO
 I am developing this code for my own test purposes as I go along. There are certainly bugs and I have not yet implemented all the DynamoDB methods. Code lacks support at this time for the following:
 
 * Scan
-* UpdateItem
 * UpdateTable
 * DeleteTable
 * BatchGetItem
