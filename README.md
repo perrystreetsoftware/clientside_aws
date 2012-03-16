@@ -33,7 +33,6 @@ I am developing this code for my own test purposes as I go along. There are cert
 
 * Scan
 * UpdateTable
-* DeleteTable
 * BatchGetItem
 
 I also have very a limited test suite; I will expand as I can. Feel free to fork, add, and submit a pull request.

@@ -11,7 +11,32 @@ helpers do
     {"TableNames" => tables, 
       "LastEvaluatedTableName" => nil}.to_json
   end
-    
+  
+  def delete_table(args)
+    halt 500 unless args['TableName']
+
+    table_name = args["TableName"]
+    key_schema = get_key_schema(table_name)
+
+    keys = DYNAMODB_REDIS.keys "tables.#{args['TableName']}.*"    
+    DYNAMODB_REDIS.del *keys if keys.length > 0
+    DYNAMODB_REDIS.srem "tables", table_name
+
+    {:Table => 
+        {:CreationDateTime => (Time.now.to_i * 1000),        
+         :ItemCount => 0,
+         :KeySchema => key_schema,
+        :ProvisionedThroughput => {
+          :LastIncreaseDateTime => (Time.now.to_i * 1000),
+          :LastDecreaseDateTime => (Time.now.to_i * 1000),
+          :ReadCapacityUnits => 10,
+          :WriteCapacityUnits => 10},
+        :TableName => table_name,
+        :TableStatus => "DELETING"
+        }
+    }.to_json   
+  end
+  
   def get_key_schema(table)
     
     hashkey_json = DYNAMODB_REDIS.get "tables.#{table}.hashkey"
@@ -355,7 +380,7 @@ end
 
 post '/' do
   req = Rack::Request.new(env)
-
+  
   amz_target = nil
   if env["HTTP_X_AMZ_TARGET"]
     amz_target = env["HTTP_X_AMZ_TARGET"].split(".").last
@@ -373,6 +398,8 @@ post '/' do
   case amz_target
   when "CreateTable"
     return create_table(args)
+  when "DeleteTable"
+    return delete_table(args)
   when "DescribeTable"
     return describe_table(args)
   when "PutItem"

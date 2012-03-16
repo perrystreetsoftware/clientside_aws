@@ -60,6 +60,9 @@ describe 'Profiles Spec' do
     item.delete()
     test_table.items[10, now].exists?.should be_false
     
+    
+    test_table.delete()
+    dynamo_db.tables.to_a.length.should == 0
   end
   
   
