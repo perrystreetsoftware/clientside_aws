@@ -3,7 +3,7 @@ clientside_dynamodb
 
 This code is meant to be used by developers who are attempting to build web applications on DynamoDB but wish to run client-side testing and validation. While creating and tearing down "free-tier" DynamoDB databases may be an acceptable solution for some, the time required (tens of seconds or minutes) quickly makes TDD (test-driven development) impractical. Just like we can use an in-memory sqlite3-based solution for mocking Mysql databases with ActiveRecord, we can now use clientside_dynamodb to mock DynamoDB databases in memory using Redis.
 
-To run this code, you will need ruby, sinatra, and the json and redis rubygems. I also use the sinatra/reloader gem to aid in development, but it is not necessary.
+To run this code, you will need ruby, sinatra, httparty, and the json and redis rubygems. I also use the sinatra/reloader gem to aid in development, but it is not necessary.
 
 You will also need redis-server installed locally
 
@@ -15,16 +15,35 @@ Then, from the command line, run:
 
 That will run the unit tests against this code.
 
-To launch this code standalone, run:
-
-    ruby index.rb
-
-That will launch sinatra and run the code on localhost:4567
-
 Overview
 --------
 
-This code works by overwriting the DynamoDB service URL in the aws-sdk gem, then monkeypatching the AWS::Core::Client request methods to use Rack's put, get, post and delete methods (see dynamodb_mock.rb). This points to a Sinatra endpoint that processes the DynamoDB requests. Provided you are using the DynamoDB methods defined in aws-sdk, when running tests and validations, the ruby client never knows it isn't talking to the real service.
+This code works by overwriting the DynamoDB service URL in the aws-sdk gem, then monkeypatching the AWS::Core::Client request methods to use Rack's put, get, post and delete methods (see dynamodb_mock.rb). This points to a Sinatra endpoint that processes the DynamoDB requests. Provided you are using the DynamoDB methods defined in aws-sdk when running tests and validations, the ruby client never knows it isn't talking to the real service.
+
+I have not packaged this up as a gem, because it needs to be a standalone sinatra project so you can launch a server from the command line (see below). I am open to suggestions about how to make it easier/cleaner to include dynamodb_mock into your actual project; right now you have to use a require statement that has knowledge of your directory structure.
+
+Adding to your project
+---------------------------
+
+From the command line, run:
+
+    cd ~/clientside_dynamodb/
+    ruby index.rb -p 4568
+
+This launches a Sinatra app, running on port 4568, that can respond to and support the DynamoDB protocol. You have your own, client-side DynamoDB server! If you are capable of mocking the requests in your language of choice to point to localhost:4568 you are ready to go. Included in this project is the code to mock in Ruby.
+
+Here's how I added clientside_dynamodb to my Sinatra project:
+
+    configure :development do
+      require '../clientside_dynamodb/dynamodb_mock'  
+      DYNAMODB = AWS::DynamoDB.new(
+        :access_key_id => "...",
+        :secret_access_key => "...")
+      # more config 
+    end
+
+I can then access the DynamoDB API from my code using the standard ruby aws-sdk DynamoDB class, discussed in more detail here: 
+http://rubydoc.info/github/amazonwebservices/aws-sdk-for-ruby/master/AWS/DynamoDB
 
 TODO
 --------------------
@@ -38,7 +57,6 @@ I am developing this code for my own test purposes as I go along. There are cert
 I also have very a limited test suite; I will expand as I can. Feel free to fork, add, and submit a pull request.
 
 * * *
-
 
 License
 =======
