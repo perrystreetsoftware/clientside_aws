@@ -1,12 +1,17 @@
 AWS::Core::Configuration.module_eval do
-  add_service 'DynamoDB', 'dynamo_db', 'localhost:4567'
+  port = ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
+  add_service "DynamoDB", "dynamo_db", "localhost:#{port}"
 end
 
 
 module AWS
   module Core
     class Client
-      include Rack::Test::Methods
+      if ENV['RACK_ENV'] == 'test'
+        include Rack::Test::Methods
+      elsif ENV['RACK_ENV'] == 'development'
+        require 'httparty'
+      end
       
       def app
         Sinatra::Application
@@ -15,7 +20,7 @@ module AWS
       private
       def make_sync_request response
 
-        if response.http_request.host == "localhost:4567"
+        if response.http_request.host.match(/localhost/)
           headers = Hash.new
           response.http_request.headers.each do |k,v|
             headers[k] = v
@@ -29,22 +34,43 @@ module AWS
           path = response.http_request.path
           body = response.http_request.body
         
+          mock_response = nil
           if response.http_request.http_method == "POST"
-            post path, body, headers
+            if ENV['RACK_ENV'] == 'test'
+              post path, body, headers
+              mock_response = last_response
+            else
+              mock_response = HTTParty::post("http://#{response.http_request.host}#{path}", :headers => headers, :body => body)
+            end
           elsif response.http_request.http_method == "GET"
-            get path, params, headers
+            if ENV['RACK_ENV'] == 'test'
+              get path, params, headers
+              mock_response = last_response
+            else
+              mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+            end
           elsif response.http_request.http_method == "DELETE"
-            delete path, params, headers
+            if ENV['RACK_ENV'] == 'test'
+              delete path, params, headers
+              mock_response = last_response
+            else
+              mock_response = HTTParty::delete("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+            end
           elsif response.http_request.http_method == "PUT"
-            put path, params, headers
+            if ENV['RACK_ENV'] == 'test'
+              put path, params, headers
+              mock_response = last_response
+            else
+              mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+            end
           end
-        
+          
           response.http_response = http_response =
             Http::Response.new
-          http_response.body = last_response.body
-          http_response.status = last_response.status
-          http_response.headers = last_response.headers
-          response.signal_success unless not last_response.ok?
+          http_response.body = mock_response.body
+          http_response.status = mock_response.respond_to?(:status) ? mock_response.status : mock_response.code
+          http_response.headers = mock_response.headers
+          response.signal_success unless not mock_response.ok?
           response
         else
           retry_server_errors do
@@ -80,9 +106,10 @@ module AWS
         send("configure_#{name}_request", http_request, opts, &block)
         http_request.headers["user-agent"] = user_agent_string
         
-        unless http_request.host == "localhost:4567"
+        unless http_request.host.match(/localhost/)
           http_request.add_authorization!(signer)        
         end
+        
         http_request
       end
     end
