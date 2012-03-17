@@ -278,7 +278,6 @@ helpers do
       keys = record_ids.map{|item|
         "tables.#{args['TableName']}.#{item}"
         }
-      profiles = DYNAMODB_REDIS.mget(*keys)
       items = keys.length > 0 ? DYNAMODB_REDIS.mget(*keys).map{|i| JSON.parse(i)} : []
     end
     
