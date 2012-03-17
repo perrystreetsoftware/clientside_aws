@@ -8,6 +8,7 @@ module AWS
   module Core
     class Client
       if ENV['RACK_ENV'] == 'test'
+        require 'rack/test'
         include Rack::Test::Methods
       elsif ENV['RACK_ENV'] == 'development'
         require 'httparty'
