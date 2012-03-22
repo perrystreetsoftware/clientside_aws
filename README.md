@@ -25,7 +25,9 @@ I have not packaged this up as a gem, because it needs to be a standalone sinatr
 Adding to your project
 ---------------------------
 
-From the command line, run:
+First, if you plan on running any rspec unit tests, you should update the REDIS_PATH variable in spec_helper.rb to point to your redis binary.
+
+To start clientside_dynamodb stand-alone, from the command line, run:
 
     cd ~/clientside_dynamodb/
     ruby index.rb -p 4568
