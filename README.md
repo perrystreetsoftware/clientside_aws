@@ -62,7 +62,7 @@ Assuming you are including the 'dynamodb_mock' file, you can call DynamoDB just 
       visitors_table.items.put(:creator_id => 1, :date => Time.now.to_f - (60 * idx), :target_id => 10 + idx)
     end
 
-You can check out the dyanmodb_spec.rb file for more unit tests and sample DynamoDB ruby code. 
+You can check out the dynamodb_spec.rb file for more unit tests and sample DynamoDB ruby code. 
 
 TODO
 --------------------
