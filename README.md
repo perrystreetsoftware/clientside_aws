@@ -45,6 +45,25 @@ Here's how I added clientside_dynamodb to my Sinatra project:
 I can then access the DynamoDB API from my code using the standard ruby aws-sdk DynamoDB class, discussed in more detail here: 
 http://rubydoc.info/github/amazonwebservices/aws-sdk-for-ruby/master/AWS/DynamoDB
 
+Assuming you are including the 'dynamodb_mock' file, you can call DynamoDB just as you normally would in your code. For example:
+
+    dynamo_db = AWS::DynamoDB.new(
+      :access_key_id => "...",
+      :secret_access_key => "...")
+
+    visitors_table = dynamo_db.tables.create("visitors", 10, 5,
+        :hash_key => { :creator_id => :number }, 
+        :range_key => {:date => :number})
+
+    visitors_table.hash_key = [:creator_id, :number]
+    visitors_table.range_key = [:date, :number]
+
+    (0..10).each do |idx|      
+      visitors_table.items.put(:creator_id => 1, :date => Time.now.to_f - (60 * idx), :target_id => 10 + idx)
+    end
+
+You can check out the dyanmodb_spec.rb file for more unit tests and sample DynamoDB ruby code. 
+
 TODO
 --------------------
 
