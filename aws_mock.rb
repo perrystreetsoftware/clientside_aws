@@ -1,6 +1,7 @@
 AWS::Core::Configuration.module_eval do
   port = ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
-  add_service "DynamoDB", "dynamo_db", "localhost:#{port}"
+  add_service "DynamoDB", "dynamo_db", "localhost:#{port}/dynamodb"
+  add_service 'SQS', 'sqs', "localhost:#{port}/sqs"
 end
 
 
@@ -38,28 +39,32 @@ module AWS
           mock_response = nil
           if response.http_request.http_method == "POST"
             if ENV['RACK_ENV'] == 'test'
-              post path, body, headers
+              new_path = URI.parse("http://#{response.http_request.host}#{path}").path
+              post new_path, body, headers
               mock_response = last_response
             else
               mock_response = HTTParty::post("http://#{response.http_request.host}#{path}", :headers => headers, :body => body)
             end
           elsif response.http_request.http_method == "GET"
             if ENV['RACK_ENV'] == 'test'
-              get path, params, headers
+              new_path = URI.parse("http://#{response.http_request.host}#{path}").path
+              get new_path, params, headers
               mock_response = last_response
             else
               mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
             end
           elsif response.http_request.http_method == "DELETE"
             if ENV['RACK_ENV'] == 'test'
-              delete path, params, headers
+              new_path = URI.parse("http://#{response.http_request.host}#{path}").path
+              delete new_path, params, headers
               mock_response = last_response
             else
               mock_response = HTTParty::delete("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
             end
           elsif response.http_request.http_method == "PUT"
             if ENV['RACK_ENV'] == 'test'
-              put path, params, headers
+              new_path = URI.parse("http://#{response.http_request.host}#{path}").path
+              put new_path, params, headers
               mock_response = last_response
             else
               mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
@@ -112,6 +117,27 @@ module AWS
         end
         
         http_request
+      end
+    end
+  end
+end
+
+module AWS
+  class SQS
+
+    # @private
+    class Request < Core::Http::Request
+
+      include Core::AuthorizeV2
+      include Core::AuthorizeWithSessionToken
+
+      def path
+        url_param = params.find { |p| p.name == "QueueUrl" }
+        "/#{url_param.value}"
+      end
+
+      def host
+        @host
       end
     end
   end

@@ -1,13 +1,12 @@
 # Set your path to the redis-server binary here
 REDIS_PATH = "../redis-stall/src/"
-
-$LOAD_PATH.unshift("#{File.dirname(__FILE__)}/..")
 ENV['RACK_ENV'] = 'test'
 
 require 'index'
 require 'sinatra'
 require 'rspec'
 require 'rack/test'
+require 'crack'
 
 Sinatra::Base.set :environment, :test
 Sinatra::Base.set :run, false
@@ -46,5 +45,5 @@ end
 
 def clean_redis
   raise "cannot flush" unless ENV['RACK_ENV'] == "test"  
-  DYNAMODB_REDIS.flushdb
+  AWS_REDIS.flushdb
 end

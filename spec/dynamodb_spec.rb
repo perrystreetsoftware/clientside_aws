@@ -1,6 +1,6 @@
 require 'spec/spec_helper'
 require 'aws-sdk'
-require 'dynamodb_mock'
+require 'aws_mock'
 
 describe 'Profiles Spec' do
   include Rack::Test::Methods

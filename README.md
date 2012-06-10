@@ -1,7 +1,9 @@
 clientside_dynamodb
 ===================
 
-This code is meant to be used by developers who are attempting to build web applications on DynamoDB but wish to run client-side testing and validation. While creating and tearing down "free-tier" DynamoDB databases may be an acceptable solution for some, the time required (tens of seconds or minutes) quickly makes TDD (test-driven development) impractical. Just like we can use an in-memory sqlite3-based solution for mocking Mysql databases with ActiveRecord, we can now use clientside_dynamodb to mock DynamoDB databases in memory using Redis.
+This code is meant to be used by developers who are attempting to build web applications on AWS but wish to run client-side testing and validation. Presently, this project mocks DynamoDB and SQS.
+
+While creating and tearing down "free-tier" SQS and DynamoDB databases may be an acceptable solution for some, the time required (tens of seconds or minutes) quickly makes TDD (test-driven development) impractical. Just like we can use an in-memory sqlite3-based solution for mocking Mysql databases with ActiveRecord, we can now  mock SQS and DynamoDB databases in memory using Redis.
 
 To run this code, you will need ruby, sinatra, httparty, and the json and redis rubygems. I also use the sinatra/reloader gem to aid in development, but it is not necessary.
 
@@ -37,7 +39,7 @@ This launches a Sinatra app, running on port 4568, that can respond to and suppo
 Here's how I added clientside_dynamodb to my Sinatra project:
 
     configure :development do
-      require '../clientside_dynamodb/dynamodb_mock'  
+      require '../clientside_dynamodb/aws_mock'  
       DYNAMODB = AWS::DynamoDB.new(
         :access_key_id => "...",
         :secret_access_key => "...")
@@ -47,7 +49,7 @@ Here's how I added clientside_dynamodb to my Sinatra project:
 I can then access the DynamoDB API from my code using the standard ruby aws-sdk DynamoDB class, discussed in more detail here: 
 http://rubydoc.info/github/amazonwebservices/aws-sdk-for-ruby/master/AWS/DynamoDB
 
-Assuming you are including the 'dynamodb_mock' file, you can call DynamoDB just as you normally would in your code. For example:
+Assuming you are including the 'aws_mock' file, you can call DynamoDB just as you normally would in your code. For example:
 
     dynamo_db = AWS::DynamoDB.new(
       :access_key_id => "...",
@@ -76,6 +78,8 @@ I am developing this code for my own test purposes as I go along. There are cert
 * BatchGetItem
 
 I also have very a limited test suite; I will expand as I can. Feel free to fork, add, and submit a pull request.
+
+There are clearly many more AWS services one can mock up. 
 
 * * *
 
