@@ -1,4 +1,4 @@
-clientside_dynamodb
+clientside_aws
 ===================
 
 This code is meant to be used by developers who are attempting to build web applications on AWS but wish to run client-side testing and validation. Presently, this project mocks DynamoDB and SQS.
@@ -13,14 +13,17 @@ Edit spec_helper.rb and configure the REDIS_PATH variable at the top to point to
 
 Then, from the command line, run:
 
-    ruby spec/dyndb_spec.rb
+    ruby spec/dynamodb_spec.rb
+or
+
+    ruby spec/sqs_spec.rb
 
 That will run the unit tests against this code.
 
 Overview
 --------
 
-This code works by overwriting the DynamoDB service URL in the aws-sdk gem, then monkeypatching the AWS::Core::Client request methods to use Rack's put, get, post and delete methods (see dynamodb_mock.rb). This points to a Sinatra endpoint that processes the DynamoDB requests. Provided you are using the DynamoDB methods defined in aws-sdk when running tests and validations, the ruby client never knows it isn't talking to the real service.
+This code works by overwriting the AWS service URLs in the aws-sdk gem, then monkeypatching the AWS::Core::Client request methods to use Rack's put, get, post and delete methods (see aws_mock.rb). This points to a Sinatra endpoint that processes the DynamoDB requests. Provided you are using the DynamoDB methods defined in aws-sdk when running tests and validations, the ruby client never knows it isn't talking to the real service.
 
 I have not packaged this up as a gem, because it needs to be a standalone sinatra project so you can launch a server from the command line (see below). I am open to suggestions about how to make it easier/cleaner to include dynamodb_mock into your actual project; right now you have to use a require statement that has knowledge of your directory structure.
 
@@ -29,17 +32,17 @@ Adding to your project
 
 First, if you plan on running any rspec unit tests, you should update the REDIS_PATH variable in spec_helper.rb to point to your redis binary.
 
-To start clientside_dynamodb stand-alone, from the command line, run:
+To start clientside_aws stand-alone, from the command line, run:
 
-    cd ~/clientside_dynamodb/
+    cd ~/clientside_aws/
     ruby index.rb -p 4568
 
-This launches a Sinatra app, running on port 4568, that can respond to and support the DynamoDB protocol. You have your own, client-side DynamoDB server! If you are capable of mocking the requests in your language of choice to point to localhost:4568 you are ready to go. Included in this project is the code to mock in Ruby.
+This launches a Sinatra app, running on port 4568, that can respond to and support various services using the AWS protocol. You have your own, client-side SQS and DynamoDB server! If you are capable of mocking the requests in your language of choice to point to localhost:4568 you are ready to go. Included in this project is the code to mock in Ruby.
 
-Here's how I added clientside_dynamodb to my Sinatra project:
+For example, here's how I added clientside_aws to my Sinatra project:
 
     configure :development do
-      require '../clientside_dynamodb/aws_mock'  
+      require '../clientside_aws/aws_mock'  
       DYNAMODB = AWS::DynamoDB.new(
         :access_key_id => "...",
         :secret_access_key => "...")
