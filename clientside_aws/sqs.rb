@@ -1,5 +1,36 @@
 helpers do
   
+  def get_queue_attributes
+    queue = params[:QueueUrl]
+    
+    xml = Builder::XmlMarkup.new()
+    xml.instruct!
+    xml.GetQueueAttributesResponse do
+      xml.GetQueueAttributesResult do
+        xml.Attribute do
+          xml.tag!(:Name, "ApproximateNumberOfMessages")
+          xml.tag!(:Value, (AWS_REDIS.llen queue))
+        end
+        xml.Attribute do
+          xml.tag!(:Name, "ApproximateNumberOfMessagesNotVisible")
+          xml.tag!(:Value, (AWS_REDIS.keys "sqs:pending:*").length)
+        end
+      end
+      xml.ResponseMetadata do
+        xml.tag!(:RequestId, UUID.new.generate)
+      end
+    end
+    
+    content_type :xml
+    xml.target!    
+  end
+    
+  def delete_message
+    AWS_REDIS.del "sqs:pending:#{params['ReceiptHandle']}"
+    
+    200
+  end
+  
   def receive_message
     queue = params[:QueueUrl]
     
@@ -17,6 +48,8 @@ helpers do
       end
       return xml.target!
     end
+    
+    AWS_REDIS.set "sqs:pending:#{params['ReceiptHandle']}", Time.now.to_i
     
     result = Crack::JSON.parse(result_json)
     
@@ -81,11 +114,15 @@ helpers do
   
 end
 
-post "/sqs/:database" do    
+post "/sqs/:database" do  
   case params[:Action]    
   when "SendMessage"
     send_message()
   when "ReceiveMessage"
     receive_message()
+  when "DeleteMessage"
+    delete_message()
+  when "GetQueueAttributes"
+    get_queue_attributes()
   end  
 end
