@@ -9,6 +9,7 @@ require 'bigdecimal'
 require 'builder'
 require 'digest'
 require 'uuid'
+require 'base64'
 
 require 'clientside_aws/dynamodb'
 require 'clientside_aws/sqs'
