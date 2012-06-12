@@ -140,7 +140,7 @@ post "/sqs" do
   end
 end
 
-post "/sqs/:database" do  
+post %r{/sqs/(.*)} do
   case params[:Action]    
   when "SendMessage"
     send_message()
