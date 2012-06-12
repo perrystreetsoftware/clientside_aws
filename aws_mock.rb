@@ -133,7 +133,7 @@ module AWS
 
       def path
         url_param = params.find { |p| p.name == "QueueUrl" }
-        "/#{url_param.value}"
+        url_param ? "/#{url_param.value}" : nil
       end
 
       def host

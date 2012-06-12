@@ -1,5 +1,24 @@
 helpers do
   
+  def get_queue_url
+    queue_name = params[:QueueName]
+
+    xml = Builder::XmlMarkup.new()
+    xml.instruct!
+    
+    xml.GetQueueUrlResponse do
+      xml.GetQueueUrlResult do
+        xml.tag!(:QueueUrl, queue_name)
+      end
+      xml.ResponseMetadata do
+        xml.tag!(:RequestId, UUID.new.generate)
+      end
+    end
+    
+    content_type :xml
+    xml.target!
+  end
+  
   def get_queue_attributes
     queue = params[:QueueUrl]
     
@@ -112,6 +131,13 @@ helpers do
     xml.target!
   end
   
+end
+
+post "/sqs" do
+  case params[:Action]
+  when "GetQueueUrl"
+    get_queue_url()
+  end
 end
 
 post "/sqs/:database" do  
