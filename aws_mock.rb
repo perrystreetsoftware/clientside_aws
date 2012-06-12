@@ -2,6 +2,7 @@ AWS::Core::Configuration.module_eval do
   port = ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
   add_service "DynamoDB", "dynamo_db", "localhost:#{port}/dynamodb"
   add_service 'SQS', 'sqs', "localhost:#{port}/sqs"
+  add_service 'S3', 's3', "localhost:#{port}/s3"
 end
 
 
@@ -40,7 +41,7 @@ module AWS
           if response.http_request.http_method == "POST"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
-              post new_path, body, headers
+              post new_path, body, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
               mock_response = HTTParty::post("http://#{response.http_request.host}#{path}", :headers => headers, :body => body)
@@ -48,7 +49,7 @@ module AWS
           elsif response.http_request.http_method == "GET"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
-              get new_path, params, headers
+              get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
               mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
@@ -56,7 +57,7 @@ module AWS
           elsif response.http_request.http_method == "DELETE"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
-              delete new_path, params, headers
+              delete new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
               mock_response = HTTParty::delete("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
@@ -64,7 +65,7 @@ module AWS
           elsif response.http_request.http_method == "PUT"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
-              put new_path, params, headers
+              put new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
               mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)

@@ -9,9 +9,11 @@ require 'bigdecimal'
 require 'builder'
 require 'digest'
 require 'uuid'
+require "base64"
 
 require 'clientside_aws/dynamodb'
 require 'clientside_aws/sqs'
+require 'clientside_aws/s3'
 
 configure :test do
   AWS_REDIS = Redis.new(:host => "localhost", :port => 6380, :timeout => 10)
