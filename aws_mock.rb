@@ -128,9 +128,6 @@ module AWS
     # @private
     class Request < Core::Http::Request
 
-      include Core::AuthorizeV2
-      include Core::AuthorizeWithSessionToken
-
       def path
         url_param = params.find { |p| p.name == "QueueUrl" }
         url_param ? "/#{url_param.value}" : nil
