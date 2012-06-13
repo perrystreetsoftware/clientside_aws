@@ -1,5 +1,4 @@
 # Set your path to the redis-server binary here
-REDIS_PATH = "../redis-stall/src/"
 ENV['RACK_ENV'] = 'test'
 
 require 'index'
@@ -21,7 +20,7 @@ RSpec.configure do |config|
     @pid1 = fork do
       $stdout = File.new('/dev/null', 'w')
       File.open("test1.conf", 'w') {|f| f.write("port 6380\ndbfilename test1.rdb\nloglevel warning") }
-      exec "#{REDIS_PATH}redis-server test1.conf"
+      exec "redis-server test1.conf"
     end
     puts "PID1 is #{@pid1}\n\n"
     sleep(3)

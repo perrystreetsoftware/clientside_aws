@@ -9,7 +9,7 @@ To run this code, you will need ruby, sinatra, httparty, and the json and redis 
 
 You will also need redis-server installed locally
 
-Edit spec_helper.rb and configure the REDIS_PATH variable at the top to point to the install location of redis-server
+Make sure redis-server is in your path
 
 Then, from the command line, run:
 
