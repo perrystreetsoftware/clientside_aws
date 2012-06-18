@@ -71,6 +71,12 @@ Assuming you are including the 'aws_mock' file, you can call DynamoDB just as yo
 
 You can check out the dynamodb_spec.rb file for more unit tests and sample DynamoDB ruby code. 
 
+If testing on a localhost(which you most likely are), you will need to add this line to your /etc/hosts file:
+
+127.0.0.1  test.localhost
+
+Amazon sticks the bucket to the front of the localhost to create a subdomain
+
 TODO
 --------------------
 

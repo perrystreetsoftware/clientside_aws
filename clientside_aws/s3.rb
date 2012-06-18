@@ -38,7 +38,7 @@ helpers do
       objects.each do |object|
         xml.Contents do
           
-          key = AWS_REDIS.hget object, "etag", "key"
+          key = AWS_REDIS.hget object,  "key"
           last_modified = AWS_REDIS.hget object, "last_modified"
           etag = AWS_REDIS.hget object, "etag"
           size = AWS_REDIS.hget object, "size"
@@ -55,11 +55,15 @@ helpers do
         end
       end
     end
-    
     content_type :xml
     xml.target!
   end
-end
+  
+  def downloadFile(bucket, obj_name)
+    obj_key = "s3:bucket:#{bucket}:#{obj_name}"
+    return AWS_REDIS.hget obj_key, 'body'
+  end
+end 
 
 get "/s3/" do 
   if env['SERVER_NAME'].match(/\./)
@@ -70,12 +74,37 @@ get "/s3/" do
   end
 end
 
-post "/s3/" do    
-  halt 401
+get "/s3/*" do
+   # handle S3 downloading from the 'servers'
+   if env['SERVER_NAME'].match(/\./)
+   
+     # get the bucket
+     bucket = env['SERVER_NAME'].split(".").first
+     
+     # get the file
+     file = params[:splat]
+     downloadFile(bucket, file) 
+   else
+     puts "May want to check yourself before you wreck yourself"
+     # 'puts response.inspect' # gives details for debug
+   end
 end
 
-put "/s3/" do
-  bucket = env['SERVER_NAME'].split(".").first
-  AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
+put "/s3/*" do 
+  # upload the file (chunking not implemented) to fake S3
+  if params[:splat]
+    file_location = params[:splat]
+    bucket = env['SERVER_NAME'].split(".").first
+    if ENV['RACK_ENV'] == 'development'
+      body_send = request.body.read
+    else 
+      body_send = params[:body]
+    end
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
+  else
+    # this is just figuring out when the bucket was created
+    bucket = env['SERVER_NAME'].split(".").first
+    AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
+  end
   200
 end

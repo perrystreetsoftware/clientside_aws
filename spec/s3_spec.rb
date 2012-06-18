@@ -18,7 +18,7 @@ describe 'Profiles Spec' do
       :access_key_id => "...",
       :secret_access_key => "...")
       
-    s3.buckets.create('mybucket')
+    s3.buckets.create('test')
     bucket = s3.buckets[:mybucket]
     
     s3.buckets.each do |bucket|
@@ -28,6 +28,12 @@ describe 'Profiles Spec' do
     bucket.objects.each do |object|
       puts object.inspect #=> no data is fetched from s3, just a list of keys
     end
+    
+    o = bucket.objects['test.file']
+    initial_hash = Digest::MD5.hexdigest(File.read('resources/spacer.gif'))
+    o.write(:file => 'resources/spacer.gif')
+    Digest::MD5.hexdigest(o.read()).should == initial_hash
+    
     
   end  
   
