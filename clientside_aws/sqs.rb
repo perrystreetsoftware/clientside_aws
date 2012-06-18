@@ -70,7 +70,7 @@ helpers do
     
     AWS_REDIS.set "sqs:pending:#{params['ReceiptHandle']}", Time.now.to_i
     
-    result = Crack::JSON.parse(result_json)
+    result = JSON.parse(result_json)
     
     xml.ReceiveMessageResponse do
       xml.ReceiveMessageResult do
