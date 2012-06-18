@@ -1,5 +1,5 @@
 AWS::Core::Configuration.module_eval do
-  port = ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
+  port = ENV['RACK_ENV'] == 'test' ? "4568" : "4567"
   add_service "DynamoDB", "dynamo_db", "localhost:#{port}/dynamodb"
   add_service 'SQS', 'sqs', "localhost:#{port}/sqs"
   add_service 'S3', 's3', "localhost:#{port}/s3"
@@ -9,10 +9,11 @@ end
 module AWS
   module Core
     class Client
+      #puts ENV['RACK_ENV']
       if ENV['RACK_ENV'] == 'test'
         require 'rack/test'
         include Rack::Test::Methods
-      elsif ENV['RACK_ENV'] == 'development'
+      else
         require 'httparty'
       end
       
@@ -46,7 +47,7 @@ module AWS
             else
               mock_response = HTTParty::post("http://#{response.http_request.host}#{path}", :headers => headers, :body => body)
             end
-          elsif response.http_request.http_method == "GET"
+          elsif response.http_request.http_method == "GET"   
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
               get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
@@ -65,16 +66,21 @@ module AWS
           elsif response.http_request.http_method == "PUT"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
+              params[:body] = body
               put new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+              mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :query =>params, :headers => headers, :body=> body)
             end
           end
-          
+        
           response.http_response = http_response =
             Http::Response.new
-          http_response.body = mock_response.body
+          if not mock_response.body.nil?
+            # there is no body for some requests that are multi-part messages
+            http_response.body = mock_response.body
+          end
+
           http_response.status = mock_response.respond_to?(:status) ? mock_response.status : mock_response.code
           http_response.headers = mock_response.headers
           response.signal_success unless not mock_response.ok?

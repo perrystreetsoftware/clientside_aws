@@ -16,10 +16,12 @@ require 'clientside_aws/sqs'
 require 'clientside_aws/s3'
 
 configure :test do
+  puts "invoking test"
   AWS_REDIS = Redis.new(:host => "localhost", :port => 6380, :timeout => 10)
 end
 
 configure :development do
+  puts "invoking dev"
   AWS_REDIS = Redis.new
 end
 
