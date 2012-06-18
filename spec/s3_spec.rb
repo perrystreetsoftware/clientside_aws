@@ -19,15 +19,15 @@ describe 'Profiles Spec' do
       :secret_access_key => "...")
       
     s3.buckets.create('test')
-    bucket = s3.buckets[:mybucket]
+    bucket = s3.buckets[:test]
     
-    s3.buckets.each do |bucket|
-      puts "Bucket is #{bucket.name}"
-    end
+    # s3.buckets.each do |bucket|
+    #   puts "Bucket is #{bucket.name}"
+    # end
     
-    bucket.objects.each do |object|
-      puts object.inspect #=> no data is fetched from s3, just a list of keys
-    end
+    # bucket.objects.each do |object|
+    #   puts object.inspect #=> no data is fetched from s3, just a list of keys
+    # end
     
     o = bucket.objects['test.file']
     initial_hash = Digest::MD5.hexdigest(File.read("#{File.dirname(__FILE__)}/../public/images/spacer.gif"))
