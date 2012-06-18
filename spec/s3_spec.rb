@@ -30,8 +30,8 @@ describe 'Profiles Spec' do
     end
     
     o = bucket.objects['test.file']
-    initial_hash = Digest::MD5.hexdigest(File.read('resources/spacer.gif'))
-    o.write(:file => 'resources/spacer.gif')
+    initial_hash = Digest::MD5.hexdigest(File.read("#{File.dirname(__FILE__)}/../public/images/spacer.gif"))
+    o.write(:file => "#{File.dirname(__FILE__)}/../public/images/spacer.gif")
     Digest::MD5.hexdigest(o.read()).should == initial_hash
     
     
