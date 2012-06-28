@@ -133,7 +133,7 @@ helpers do
   
 end
 
-post "/sqs" do
+post "/sqs/?" do
   case params[:Action]
   when "GetQueueUrl"
     get_queue_url()
