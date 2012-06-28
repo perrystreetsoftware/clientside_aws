@@ -20,7 +20,7 @@ helpers do
     end
         
     content_type :xml
-    xml.target!    
+    xml.target!
   end
   
   def list_objects(bucket)
@@ -59,10 +59,23 @@ helpers do
     xml.target!
   end
   
+  def objectNotFound
+    xml = Builder::XmlMarkup.new()
+    xml.instruct!
+    xml.Error do
+      xml.tag!(:Code, "NoSuchKey")
+      xml.tag!(:Message, "The specified key does not exist.")
+    end
+    content_type :xml
+    xml.target!
+  end
+
+
   def downloadFile(bucket, obj_name)
     obj_key = "s3:bucket:#{bucket}:#{obj_name}"
     return AWS_REDIS.hget obj_key, 'body'
   end
+    
 end 
 
 get "/s3/" do 
@@ -72,28 +85,59 @@ get "/s3/" do
   else
     list_buckets
   end
+  status 200
 end
 
 get "/s3/*" do
    # handle S3 downloading from the 'servers'
    if env['SERVER_NAME'].match(/\./)
-   
      # get the bucket
      bucket = env['SERVER_NAME'].split(".").first
-     
-     # get the file
-     file = params[:splat]
-     downloadFile(bucket, file) 
+     if AWS_REDIS.hget("s3:bucket:#{bucket}:#{params[:splat]}", "body").nil?
+       # I can't find the object in the fake bucket!
+       halt 404, objectNotFound
+     else    
+       file = params[:splat]
+       if not params.has_key?('head_request')
+         # download the file and send back
+         response.body = downloadFile(bucket, file)
+       end
+       # using HTML because amazon's backend cracks open and finds what type it is and the browser will usually
+       # handle this
+       response.headers["Content-Type"] = 'html'
+       response.headers["Content-Length"] =  downloadFile(bucket, file).length
+       response.body  = downloadFile(bucket, file)
+       return
+     end  
    else
      puts "May want to check yourself before you wreck yourself"
      # 'puts response.inspect' # gives details for debug
    end
+   status 200
 end
 
-put "/s3/*" do 
+delete "/s3/*" do 
+  # delete the given key
+  if env['SERVER_NAME'].match(/\./)
+    bucket = env['SERVER_NAME'].split(".").first
+    AWS_REDIS.del "s3:bucket:#{bucket}:#{params[:splat]}"
+  end
+  status 200
+end
+
+
+put "/s3/" do
+  # bucket creation
+  bucket = env['SERVER_NAME'].split(".").first
+  AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
+  status 200
+end
+
+put "/s3/:file" do 
   # upload the file (chunking not implemented) to fake S3
-  if params[:splat]
-    file_location = params[:splat]
+  if params[:file]
+    body_send = nil
+    file_location = params[:file]
     bucket = env['SERVER_NAME'].split(".").first
     if ENV['RACK_ENV'] == 'development'
       body_send = request.body.read
@@ -101,10 +145,11 @@ put "/s3/*" do
       body_send = params[:body]
     end
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
-  else
-    # this is just figuring out when the bucket was created
-    bucket = env['SERVER_NAME'].split(".").first
-    AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
+    
   end
-  200
+  status 200
 end
+
+
+
+

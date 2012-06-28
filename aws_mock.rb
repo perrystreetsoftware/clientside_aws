@@ -53,8 +53,20 @@ module AWS
               get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+              mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)    
             end
+          elsif response.http_request.http_method == "HEAD"  
+            #NOTE: a head request via AWS breaks the specifications when there is an error
+            #      We need to send a GET request instead of head in case there is an XML 
+            #      body attached to the response
+            params['head_request'] = 1
+            if ENV['RACK_ENV'] == 'test'
+              new_path = URI.parse("http://#{response.http_request.host}#{path}").path
+              get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
+              mock_response = last_response
+            else
+              mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+            end  
           elsif response.http_request.http_method == "DELETE"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
@@ -70,6 +82,12 @@ module AWS
               put new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
+              params[:body] = body
+              if not headers['content-length'].nil?
+                headers['content-length'] = headers['content-length'].to_s
+              else 
+                headers['content-length'] = "0"
+              end
               mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :query =>params, :headers => headers, :body=> body)
             end
           end
@@ -84,6 +102,7 @@ module AWS
           http_response.status = mock_response.respond_to?(:status) ? mock_response.status : mock_response.code
           http_response.headers = mock_response.headers
           response.signal_success unless not mock_response.ok?
+          populate_error(response)
           response
         else
           retry_server_errors do
