@@ -102,16 +102,14 @@ get "/s3/*" do
          # download the file and send back
          response.body = downloadFile(bucket, file)
        end
-       # using HTML because amazon's backend cracks open and finds what type it is and the browser will usually
-       # handle this
-       response.headers["Content-Type"] = 'html'
+       content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{params[:splat]}", "content-type")
+       response.headers["Content-Type"] = content_type.nil? ? 'html' : content_type
        response.headers["Content-Length"] =  downloadFile(bucket, file).length
        response.body  = downloadFile(bucket, file)
        return
      end  
    else
-     puts "May want to check yourself before you wreck yourself"
-     # 'puts response.inspect' # gives details for debug
+     halt 404, "unknown bucket"
    end
    status 200
 end
@@ -145,6 +143,7 @@ put "/s3/:file" do
       body_send = params[:body]
     end
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['CONTENT_TYPE']
     
   end
   status 200
