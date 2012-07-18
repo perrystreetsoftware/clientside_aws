@@ -25,6 +25,7 @@ configure :development do
   AWS_REDIS = Redis.new
 end
 
+ENV['RACK_ENV'] = "development" unless ENV['RACK_ENV']
 DYNAMODB_PREFIX = "DynamoDBv20110924"
 
 get '/' do
