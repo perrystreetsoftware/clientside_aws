@@ -89,29 +89,28 @@ get "/s3/" do
 end
 
 get "/s3/*" do
-   # handle S3 downloading from the 'servers'
-   if env['SERVER_NAME'].match(/\./)
-     # get the bucket
-     bucket = env['SERVER_NAME'].split(".").first
-     if AWS_REDIS.hget("s3:bucket:#{bucket}:#{params[:splat]}", "body").nil?
-       # I can't find the object in the fake bucket!
-       halt 404, objectNotFound
-     else    
-       file = params[:splat]
-       if not params.has_key?('head_request')
-         # download the file and send back
-         response.body = downloadFile(bucket, file)
-       end
-       content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{params[:splat]}", "content-type")
-       response.headers["Content-Type"] = content_type.nil? ? 'html' : content_type
-       response.headers["Content-Length"] =  downloadFile(bucket, file).length
-       response.body  = downloadFile(bucket, file)
-       return
-     end  
-   else
-     halt 404, "unknown bucket"
-   end
-   status 200
+  bucket = nil
+  file = nil
+  
+  # handle S3 downloading from the 'servers'
+  if params[:splat].first.match(/\//)
+    bucket, file = params[:splat].first.split(/\//)
+  elsif env['SERVER_NAME'].match(/\./)
+    bucket = env['SERVER_NAME'].split(".").first     
+    file = params[:splat].first
+  else
+    halt 404, "unknown bucket"
+  end
+   
+  halt 404, objectNotFound if AWS_REDIS.hget("s3:bucket:#{bucket}:#{file}", "body").nil?
+
+  body = downloadFile(bucket, file)
+  content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{file}", "content-type")
+  response.headers["Content-Type"] = content_type.nil? ? 'html' : content_type
+  response.headers["Content-Length"] = body.length
+  response.body = body
+
+  status 200
 end
 
 delete "/s3/*" do 
