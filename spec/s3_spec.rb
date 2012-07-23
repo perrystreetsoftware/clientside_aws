@@ -32,6 +32,11 @@ describe 'Profiles Spec' do
 
     object.delete()
     object.exists?.should == false
+    
+    json_value = {:foo => "bar"}.to_json
+    object = bucket.objects['test.json']
+    object.write(json_value, :content_type => "application/json")
+    object.read().should == json_value
+    object.content_type.should == "application/json"
   end  
-  
 end

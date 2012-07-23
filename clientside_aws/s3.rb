@@ -142,8 +142,11 @@ put "/s3/:file" do
       body_send = params[:body]
     end
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
-    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['CONTENT_TYPE']
-    
+    if env.has_key?('content-type')
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['content-type']
+    elsif env.has_key?('CONTENT_TYPE')
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['CONTENT_TYPE']
+    end
   end
   status 200
 end
