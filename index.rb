@@ -14,6 +14,7 @@ require 'base64'
 require 'clientside_aws/dynamodb'
 require 'clientside_aws/sqs'
 require 'clientside_aws/s3'
+require 'clientside_aws/ses'
 
 configure :test do
   puts "invoking test"

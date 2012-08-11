@@ -3,6 +3,7 @@ AWS::Core::Configuration.module_eval do
   add_service "DynamoDB", "dynamo_db", "localhost:#{port}/dynamodb"
   add_service 'SQS', 'sqs', "localhost:#{port}/sqs"
   add_service 'S3', 's3', "localhost:#{port}/s3"
+  add_service 'SimpleEmailService', 'simple_email_service', "localhost:#{port}/ses"
 end
 
 
