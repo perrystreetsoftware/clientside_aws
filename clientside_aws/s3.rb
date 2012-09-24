@@ -108,6 +108,7 @@ get "/s3/*" do
   content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{file}", "content-type")
   response.headers["Content-Type"] = content_type.nil? ? 'html' : content_type
   response.headers["Content-Length"] = body.length
+  response.headers["ETag"] = Digest::MD5.hexdigest(body)
   response.body = body
 
   status 200

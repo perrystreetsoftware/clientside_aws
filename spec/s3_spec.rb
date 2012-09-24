@@ -38,5 +38,7 @@ describe 'Profiles Spec' do
     object.write(json_value, :content_type => "application/json")
     object.read().should == json_value
     object.content_type.should == "application/json"
+    
+    object.etag.should == Digest::MD5.hexdigest(json_value)
   end  
 end
