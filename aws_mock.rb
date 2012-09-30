@@ -31,6 +31,12 @@ module AWS
             headers[k] = v
           end
         
+          if not headers['content-length'].nil?
+            headers['content-length'] = headers['content-length'].to_s
+          else 
+            headers['content-length'] = "0"
+          end
+        
           params = Hash.new
           response.http_request.params.each do |p|
             params[p.name] = p.value
@@ -83,11 +89,6 @@ module AWS
               put new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              if not headers['content-length'].nil?
-                headers['content-length'] = headers['content-length'].to_s
-              else 
-                headers['content-length'] = "0"
-              end
               mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :query => params, :headers => headers, :body=> body)
             end
           end
