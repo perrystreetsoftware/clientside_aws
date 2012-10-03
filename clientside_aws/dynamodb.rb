@@ -315,8 +315,8 @@ helpers do
       rangekey_value = rangekey_value_dict.values.first
 
       last_evaluated_key = {
-        :HashKeyElement => {hashkey_value_type, hashkey_value},
-        :RangeKeyElement => {rangekey_value_type, rangekey_value},
+        :HashKeyElement => {hashkey_value_type => hashkey_value},
+        :RangeKeyElement => {rangekey_value_type => rangekey_value},
       }
     end    
 
