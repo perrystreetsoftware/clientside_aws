@@ -142,6 +142,13 @@ helpers do
       hashkey_value = BigDecimal(args["Item"][hashkey["AttributeName"]]["N"])
     end
     
+    if (args.has_key?('Expected') and args['Expected'].has_key?('Name') and 
+        args['Expected']['Name'].has_key?('Exists') and args['Expected']['Name']['Exists'] == false)
+      if AWS_REDIS.hexists "tables.#{args['TableName']}.hashkey_index", hashkey_value
+        halt 400, {"__type" => "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException", :message => "The conditional request failed"}.to_json
+      end
+    end
+    
     halt 500 unless hashkey_value    
     
     record_id = AWS_REDIS.incr "tables.#{args['TableName']}.auto_incr"
@@ -331,11 +338,13 @@ helpers do
     if args["Key"]["HashKeyElement"].has_key?("N")
       hashkey_value = BigDecimal(args['Key']['HashKeyElement']['N'])
     else
-      hashkey_value = BigDecimal(args['Key']['HashKeyElement']['S'])
+      hashkey_value = args['Key']['HashKeyElement']['S']
     end
     
-    rangekey_value = get_rangekey_value(args['Key']['RangeKeyElement'])
-        
+    if args["Key"].has_key?("RangeKeyElement")
+      rangekey_value = get_rangekey_value(args['Key']['RangeKeyElement'])
+    end
+    
     if hashkey_value and rangekey_value
       record_id = AWS_REDIS.hget "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value      
     else
