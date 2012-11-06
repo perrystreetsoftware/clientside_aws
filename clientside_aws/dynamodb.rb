@@ -327,8 +327,12 @@ helpers do
       }
     end    
 
-    return {:Count => items.length, :Items => items, :ReadsUsed => 1,
-      :LastEvaluatedKey => nil}.to_json
+    result = {:Count => items.length, :Items => items, :ReadsUsed => 1}
+    if last_evaluated_key
+      result[:LastEvaluatedKey] = last_evaluated_key
+    end
+    
+    return result.to_json
   end
   
   def delete_item(args)
