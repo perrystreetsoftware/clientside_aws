@@ -91,6 +91,14 @@ helpers do
             xml.tag!(:Name, "ReceiptHandle")
             xml.tag!(:Value, result['Timestamp'])
           end
+          xml.Attribute do
+            xml.tag!(:Name, "ApproximateReceiveCount")
+            xml.tag!(:Value, "1")
+          end
+          xml.Attribute do
+            xml.tag!(:Name, "ApproximateFirstReceiveTimestamp")
+            xml.tag!(:Value, result['Timestamp'] * 1000)
+          end
         end
       end
       xml.ResponseMetadata do
