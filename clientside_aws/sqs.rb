@@ -52,13 +52,13 @@ helpers do
   
   def receive_message
     queue = params[:QueueUrl]
+    max_messages = params[:MaxNumberOfMessages].to_i
+    max_messages = 1 if max_messages == 0
     
     xml = Builder::XmlMarkup.new()
     xml.instruct!
-    
-    result_json = AWS_REDIS.rpop queue
-    
-    if result_json.nil?
+        
+    if (AWS_REDIS.llen queue) == 0
       xml.ReceiveMessageResponse do
         xml.ReceiveMessageResult do
         end
@@ -70,39 +70,45 @@ helpers do
     
     AWS_REDIS.set "sqs:pending:#{params['ReceiptHandle']}", Time.now.to_i
     
-    result = JSON.parse(result_json)
+    results_json = []
+    max_messages.times do
+      results_json << JSON.parse(AWS_REDIS.rpop queue)
+      break if (AWS_REDIS.llen queue) == 0
+    end
     
     xml.ReceiveMessageResponse do
       xml.ReceiveMessageResult do
-        xml.Message do
-          xml.tag!(:MessageId, result['MessageId'])
-          xml.tag!(:ReceiptHandle, result['ReceiptHandle'])
-          xml.tag!(:MD5OfBody, Digest::MD5.hexdigest(result['MessageBody']))
-          xml.tag!(:Body, result['MessageBody'])
-          xml.Attribute do
-            xml.tag!(:Name, "SenderId")
-            xml.tag!(:Value, "1")
-          end
-          xml.Attribute do
-            xml.tag!(:Name, "SentTimestamp")
-            xml.tag!(:Value, result['Timestamp'])
-          end
-          xml.Attribute do
-            xml.tag!(:Name, "ReceiptHandle")
-            xml.tag!(:Value, result['Timestamp'])
-          end
-          xml.Attribute do
-            xml.tag!(:Name, "ApproximateReceiveCount")
-            xml.tag!(:Value, "1")
-          end
-          xml.Attribute do
-            xml.tag!(:Name, "ApproximateFirstReceiveTimestamp")
-            xml.tag!(:Value, result['Timestamp'] * 1000)
+        results_json.each do |result|
+          xml.Message do
+            xml.tag!(:MessageId, result['MessageId'])
+            xml.tag!(:ReceiptHandle, result['ReceiptHandle'])
+            xml.tag!(:MD5OfBody, Digest::MD5.hexdigest(result['MessageBody']))
+            xml.tag!(:Body, result['MessageBody'])
+            xml.Attribute do
+              xml.tag!(:Name, "SenderId")
+              xml.tag!(:Value, "1")
+            end
+            xml.Attribute do
+              xml.tag!(:Name, "SentTimestamp")
+              xml.tag!(:Value, result['Timestamp'])
+            end
+            xml.Attribute do
+              xml.tag!(:Name, "ReceiptHandle")
+              xml.tag!(:Value, result['Timestamp'])
+            end
+            xml.Attribute do
+              xml.tag!(:Name, "ApproximateReceiveCount")
+              xml.tag!(:Value, "1")
+            end
+            xml.Attribute do
+              xml.tag!(:Name, "ApproximateFirstReceiveTimestamp")
+              xml.tag!(:Value, result['Timestamp'] * 1000)
+            end
           end
         end
       end
       xml.ResponseMetadata do
-        xml.tag!(:RequestId, result['RequestId'])
+        xml.tag!(:RequestId, results_json.first['RequestId'])
       end
     end    
     
