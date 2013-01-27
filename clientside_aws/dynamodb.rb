@@ -72,7 +72,6 @@ helpers do
   end
   
   def create_table(args)
-
     halt 500, 'no table name' unless args['TableName']
     halt 500, 'no key schema' unless args['KeySchema']
     halt 500, 'no provisioned throughput' unless args['ProvisionedThroughput']
@@ -241,6 +240,7 @@ helpers do
     
     exclusive_start_key = nil
     last_evaluated_key = nil
+
     hashkey_name = JSON::parse((AWS_REDIS.get "tables.#{args['TableName']}.hashkey"))['AttributeName']
     
     rangekey_obj = JSON::parse((AWS_REDIS.get "tables.#{args['TableName']}.rangekey"))
@@ -260,6 +260,15 @@ helpers do
       if args["RangeKeyCondition"]["ComparisonOperator"] == "LT"
         rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
         valid_rangekeys = rangekeys.map{|rk| convert_rangekey_value(rk, rangekey_type)}.select{|rk| (rk <=> rangekey_value) == -1}.sort
+      elsif args["RangeKeyCondition"]["ComparisonOperator"] == "GT"
+        rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
+        valid_rangekeys = rangekeys.map{|rk| convert_rangekey_value(rk, rangekey_type)}.select{|rk| (rk <=> rangekey_value) == +1}.sort
+      elsif args["RangeKeyCondition"]["ComparisonOperator"] == "GE"
+        rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
+        valid_rangekeys = rangekeys.map{|rk| convert_rangekey_value(rk, rangekey_type)}.select{|rk| (rk <=> rangekey_value) >= 0}.sort
+      elsif args["RangeKeyCondition"]["ComparisonOperator"] == "LE"
+        rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
+        valid_rangekeys = rangekeys.map{|rk| convert_rangekey_value(rk, rangekey_type)}.select{|rk| (rk <=> rangekey_value) <= 0}.sort
       elsif args["RangeKeyCondition"]["ComparisonOperator"] == "EQ"
         rangekey_value = get_rangekey_value(args["RangeKeyCondition"]["AttributeValueList"].first)
         valid_rangekeys = rangekeys.map{|rk| convert_rangekey_value(rk, rangekey_type)}.select{|rk| (rk <=> rangekey_value) == 0}
@@ -368,6 +377,27 @@ helpers do
     return {"Item" => item, "ReadsUsed" => 1}.to_json
   end
   
+  def batch_write_item(args)
+    items = []
+    responses = {}
+    
+    args['RequestItems'].each do |k,v|
+      table_name = k
+      requests = v
+      requests.each do |request|
+        request.each do |k2, v2|
+          case k2
+          when "DeleteRequest"
+            delete_item({'TableName' => table_name, 'Key' => v2['Key']})
+            responses[table_name] = {"ConsumedCapacityUnits" => 1}
+          end
+        end
+      end
+    end
+    
+    return {:Responses => responses, :UnprocessedItems => []}.to_json    
+  end
+  
 end
 
 post '/dynamodb/?' do
@@ -406,6 +436,8 @@ post '/dynamodb/?' do
     return query(args)
   when "ListTables"
     return list_tables(args)
+  when "BatchWriteItem"
+    return batch_write_item(args)
   else
     halt 500, "unknown command #{req.inspect}"
   end
