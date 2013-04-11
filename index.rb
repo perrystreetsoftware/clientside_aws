@@ -15,6 +15,7 @@ require 'clientside_aws/dynamodb'
 require 'clientside_aws/sqs'
 require 'clientside_aws/s3'
 require 'clientside_aws/ses'
+require 'clientside_aws/elastic_transcoder'
 
 configure :test do
   puts "invoking test"
