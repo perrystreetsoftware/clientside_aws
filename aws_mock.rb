@@ -9,9 +9,8 @@ end
 
 
 module AWS
-  module Core
+  module Core    
     class Client
-      #puts ENV['RACK_ENV']
       if ENV['RACK_ENV'] == 'test'
         require 'rack/test'
         include Rack::Test::Methods
@@ -122,30 +121,71 @@ module AWS
         end
       end
       
-      def build_request(name, options, &block)
-        # we dont want to pass the async option to the configure block
-        opts = options.dup
-        opts.delete(:async)
-        
-        http_request = new_request
-        
-        # configure the http request
-        http_request.host = endpoint
-        http_request.proxy_uri = config.proxy_uri
-        http_request.use_ssl = config.use_ssl?
-        http_request.ssl_verify_peer = config.ssl_verify_peer?
-        http_request.ssl_ca_file = config.ssl_ca_file if config.ssl_ca_file
-        http_request.ssl_ca_path = config.ssl_ca_path if config.ssl_ca_path
-        
-        send("configure_#{name}_request", http_request, opts, &block)
-        http_request.headers["user-agent"] = user_agent_string
-        
-        unless http_request.host.match(/localhost/)
-          http_request.add_authorization!(signer)        
+      def client_request name, options, &read_block
+        return_or_raise(options) do
+          log_client_request(options) do
+
+            if config.stub_requests?
+
+              response = stub_for(name)
+              response.http_request = build_request(name, options)
+              response.request_options = options
+              response
+
+            else
+
+              client = self
+
+              response = new_response do
+                req = client.send(:build_request, name, options)
+                # req.add_authorization!(credential_provider)
+                req
+              end
+
+              response.request_type = name
+              response.request_options = options
+
+              if
+                cacheable_request?(name, options) and
+                cache = AWS.response_cache and
+                cached_response = cache.cached(response)
+              then
+                cached_response.cached = true
+                cached_response
+              else
+
+                # process the http request
+                options[:async] ?
+                make_async_request(response, &read_block) :
+                  make_sync_request(response, &read_block)
+
+                # process the http response
+                response.on_success do
+                  send("process_#{name}_response", response)
+                  if cache = AWS.response_cache
+                    cache.add(response)
+                  end
+                end
+
+                # close files we opened
+                response.on_complete do
+                  if response.http_request.body_stream.is_a?(ManagedFile)
+                    response.http_request.body_stream.close
+                  end
+                end
+
+                response
+
+              end
+
+            end
+
+          end
         end
-        
-        http_request
+
       end
+
+
     end
   end
 end
@@ -156,14 +196,10 @@ module AWS
     # @private
     class Request < Core::Http::Request
 
-      def path
-        url_param = params.find { |p| p.name == "QueueUrl" }
-        url_param ? "/#{url_param.value}" : nil
-      end
-
       def host
-        @host
+        return @host + ":" + (ENV['RACK_ENV'] == 'test' ? "4567" : "4568")
       end
+      
     end
   end
 end
