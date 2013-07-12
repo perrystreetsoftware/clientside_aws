@@ -110,7 +110,15 @@ helpers do
       
       args["AttributeUpdates"].each do |key,update|
         if update["Action"] == "ADD"
-          record_value[key] = update["Value"]
+          if update["Value"].has_key?("N")
+            increment_amount = update["Value"]["N"].to_i
+            if record_value[key].has_key?("N")
+              record_value[key]["N"] = record_value[key]["N"].to_i + increment_amount
+            else
+              halt 500, "Incorrect type"
+            end
+          else
+          end
         elsif update["Action"] == "DELETE"
           record_value.delete(key)
         end
