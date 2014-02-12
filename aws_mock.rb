@@ -5,6 +5,7 @@ AWS::Core::Configuration.module_eval do
   add_service 'S3', 's3', "localhost:#{port}/s3"
   add_service 'ElasticTranscoder', 'elastic_transcoder', "localhost:#{port}/elastic_transcoder"
   add_service 'SimpleEmailService', 'simple_email_service', "localhost:#{port}/ses"
+  add_service 'SNS', 'sns', "localhost:#{port}/sns"
 end
 
 

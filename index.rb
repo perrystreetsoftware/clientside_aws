@@ -16,6 +16,7 @@ require 'clientside_aws/sqs'
 require 'clientside_aws/s3'
 require 'clientside_aws/ses'
 require 'clientside_aws/elastic_transcoder'
+require 'clientside_aws/sns'
 
 configure :test do
   puts "invoking test"
