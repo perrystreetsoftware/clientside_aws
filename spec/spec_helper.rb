@@ -5,7 +5,6 @@ require 'index'
 require 'sinatra'
 require 'rspec'
 require 'rack/test'
-require 'crack'
 
 Sinatra::Base.set :environment, :test
 Sinatra::Base.set :run, false
