@@ -21,6 +21,7 @@ describe 'Profiles Spec' do
       :access_key_id => "...",
       :secret_access_key => "...")   
       
-    sns.client.create_platform_endpoint(:platform_application_arn => "SNS_APPLICATION_ARN_IOS", :token => "token")
+    response = sns.client.create_platform_endpoint(:platform_application_arn => "SNS_APPLICATION_ARN_IOS", :token => "token")
+    response.data[:endpoint_arn].should_not be_nil
   end  
 end
