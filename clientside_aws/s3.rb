@@ -118,7 +118,7 @@ delete "/s3/*" do
   # delete the given key
   if env['SERVER_NAME'].match(/\./)
     bucket = env['SERVER_NAME'].split(".").first
-    AWS_REDIS.del "s3:bucket:#{bucket}:#{params[:splat]}"
+    AWS_REDIS.del "s3:bucket:#{bucket}:#{params[:splat].first}"
   end
   status 200
 end
