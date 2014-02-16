@@ -10,6 +10,9 @@ require 'builder'
 require 'digest'
 require 'uuid'
 require 'base64'
+require 'rack'
+require 'rack/cors'
+require 'rack/protection'
 
 require 'clientside_aws/dynamodb'
 require 'clientside_aws/sqs'
@@ -26,6 +29,13 @@ end
 configure :development do
   puts "invoking dev"
   AWS_REDIS = Redis.new
+  use Rack::Cors do
+    allow do
+      origins '*'
+      resource '*', :headers => :any, :methods => :all
+    end
+  end
+  set :protection, :except => [:http_origin]
 end
 
 ENV['RACK_ENV'] = "development" unless ENV['RACK_ENV']

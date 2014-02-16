@@ -9,3 +9,4 @@ gem "rspec", "2.5.0"
 gem "rack", "1.5.2"
 gem "rack-test", "0.5.7"
 gem "aws-sdk", "1.20.0"
+gem 'rack-cors', '0.2.9', :require => 'rack/cors'
