@@ -15,6 +15,7 @@ GEM
       backports
     nokogiri (1.5.11)
     rack (1.5.2)
+    rack-cors (0.2.9)
     rack-protection (1.5.2)
       rack
     rack-test (0.5.7)
@@ -55,6 +56,7 @@ DEPENDENCIES
   aws-sdk (= 1.20.0)
   builder (= 3.1.0)
   rack (= 1.5.2)
+  rack-cors (= 0.2.9)
   rack-test (= 0.5.7)
   redis (= 3.0.1)
   rspec (= 2.5.0)

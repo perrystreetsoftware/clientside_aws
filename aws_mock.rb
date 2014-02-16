@@ -191,6 +191,27 @@ module AWS
   end
 end
 
+module AWS # override for constructing POST requests for client
+  class S3
+    class PresignedPost
+      def secure?
+        false
+      end
+      def url
+        request = Request.new
+        request.bucket = bucket.name
+        parts = config.s3_endpoint.split(':')
+        request.host = parts.shift
+        parts = parts.join(':').split('/')
+        request.port = parts.shift.to_i        
+        request.key = parts.join('/')
+        uri_class = secure? ? URI::HTTPS : URI::HTTP
+        uri_class.build(:host => request.host, :path => request.path, :query => request.querystring, :port => request.port)
+      end
+    end
+  end
+end
+
 module AWS
   class SQS
 
