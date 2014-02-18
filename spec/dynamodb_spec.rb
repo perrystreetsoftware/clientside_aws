@@ -113,5 +113,91 @@ describe 'Profiles Spec' do
     results.to_a.length.should == 1
         
   end
+
+  it "should handle local secondary indexes" do
+    dynamo_db = AWS::DynamoDB::Client.new(
+      :api_version => '2012-08-10',
+      :access_key_id => "...",
+      :secret_access_key => "...")
+      
+    test_table = dynamo_db.create_table(
+      :table_name => "visited_by", 
+      :provisioned_throughput => {:read_capacity_units => 1, :write_capacity_units => 1},
+      :attribute_definitions => [
+        {:attribute_name => 'profile_id', :attribute_type => "N"}, 
+        {:attribute_name => 'visitor_id', :attribute_type => "N"}],
+      :key_schema => [
+        {:attribute_name => "profile_id", :key_type => "HASH"},
+        {:attribute_name => "visitor_id", :key_type => "RANGE"}],
+      :local_secondary_indexes => [{
+        :index_name => "ls_index",
+        :key_schema => [
+          {:attribute_name => "profile_id", :key_type => "HASH"},
+          {:attribute_name => "timestamp", :key_type => "RANGE"}
+          ],
+        :projection => {:projection_type => "ALL"}
+        }])
+
+    now = Time.now.to_i
+    
+    dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}, 
+      'timestamp' => {'n' => now.to_s}})
+
+    item = dynamo_db.get_item(:table_name => "visited_by", :key => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}})
+    item.should_not be_nil
+    item[:item]['profile_id'][:n].should == "1"
+
+    item = dynamo_db.get_item(:table_name => "visited_by", :key => {'profile_id' => {'n' => '2'}, 'visitor_id' => {'n' => '2'}})
+    item[:item].should be_nil
+    
+    results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'ls_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "1"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => (Time.now.to_i).to_s}
+             ]
+           }}})
+    results[:member].length.should == 1
+    
+    results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'ls_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "1"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => (Time.now.utc.to_i - 2).to_s}
+             ]
+           }}})
+    results[:member].length.should == 0
+    
+    dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '3'}, 'timestamp' => {'n' => Time.now.utc.to_i.to_s}})
+    dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '4'}, 'timestamp' => {'n' => Time.now.utc.to_i.to_s}})
+    
+    results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'ls_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "1"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => (Time.now.to_i).to_s}
+             ]
+           }}})
+    results[:member].length.should == 3
+    
+  end
   
 end

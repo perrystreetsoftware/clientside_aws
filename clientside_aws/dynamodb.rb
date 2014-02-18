@@ -72,6 +72,7 @@ helpers do
   end
   
   def create_table(args)
+    
     halt 500, 'no table name' unless args['TableName']
     halt 500, 'no key schema' unless args['KeySchema']
     halt 500, 'no provisioned throughput' unless args['ProvisionedThroughput']
@@ -80,15 +81,36 @@ helpers do
     AWS_REDIS.sadd "tables", args['TableName']
     AWS_REDIS.set "tables.#{args['TableName']}.auto_incr", 0
     
-    args['KeySchema'].each do |k,v|
-      case k
-      when "HashKeyElement"
-        AWS_REDIS.set "tables.#{args['TableName']}.hashkey", v.to_json
-      when "RangeKeyElement"
-        AWS_REDIS.set "tables.#{args['TableName']}.rangekey", v.to_json
+    if args.has_key?('LocalSecondaryIndexes')
+      args['LocalSecondaryIndexes'].each do |lsi|
+        index_name = lsi['IndexName']
+        AWS_REDIS.sadd "tables.#{args['TableName']}.secondary_indexes", lsi.to_json
       end
     end
     
+    if args['KeySchema'].class == Array
+      args['KeySchema'].each do |ks|
+        
+        key_defn = args['AttributeDefinitions'].select{|a| a["AttributeName"] == ks["AttributeName"]}.first
+        halt 500 unless key_defn
+        
+        if ks["KeyType"] == "HASH"
+          AWS_REDIS.set "tables.#{args['TableName']}.hashkey", key_defn.to_json
+        elsif ks["KeyType"] == "RANGE"
+          AWS_REDIS.set "tables.#{args['TableName']}.rangekey", key_defn.to_json
+        end
+      end
+    else
+      args['KeySchema'].each do |k,v|
+        case k
+        when "HashKeyElement"
+          AWS_REDIS.set "tables.#{args['TableName']}.hashkey", v.to_json
+        when "RangeKeyElement"
+          AWS_REDIS.set "tables.#{args['TableName']}.rangekey", v.to_json
+        end
+      end
+    end
+        
     return {
       :TableDescription => { 
         :CreationDateTime => (Time.now.to_i * 1000),
@@ -107,7 +129,6 @@ helpers do
     record_id = get_record_id(args)
     if record_id
       record_value = JSON.parse(AWS_REDIS.get "tables.#{args['TableName']}.#{record_id}")
-      
       args["AttributeUpdates"].each do |key,update|
         if update["Action"] == "ADD"
           if update["Value"].has_key?("N")
@@ -174,6 +195,42 @@ helpers do
       AWS_REDIS.hset "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value, record_id
     end
     
+    # setup secondary indexes
+    secondary_indexes = AWS_REDIS.smembers "tables.#{args['TableName']}.secondary_indexes"
+    secondary_indexes.each do |raw|
+      lsi = JSON.parse(raw)
+      index_name = lsi['IndexName']
+      hashkey_value = nil
+      rangekey_value = nil
+      
+      lsi['KeySchema'].each do |attrs|
+        attr_name = attrs["AttributeName"]
+        key_type = attrs["KeyType"]
+        
+        if key_type == "HASH"
+          if args["Item"][attrs["AttributeName"]].has_key?("S")
+            hashkey_value = args["Item"][attrs["AttributeName"]]["S"]
+          else
+            hashkey_value = BigDecimal(args["Item"][attrs["AttributeName"]]["N"])
+          end
+        else
+          if args["Item"][attrs["AttributeName"]].has_key?("S")
+            rangekey_value = args["Item"][attrs["AttributeName"]]["S"]
+          else
+            rangekey_value = BigDecimal(args["Item"][attrs["AttributeName"]]["N"])
+          end
+        end
+      end
+
+      # Secondary indexes store sets, not hmaps
+      # H => 1, R => 2, TS => 3
+      # H => 1, R => 3, TS => 3
+      # This means the secondary index on TS should have two records, {H => 1, R => 2} and {H => 1, R => 3}
+      # Storing as a hmap on H, TS would overwrite 
+      
+      AWS_REDIS.sadd "tables.#{args['TableName']}.secondary_index.#{index_name}.#{hashkey_value}/#{rangekey_value}", record_id
+    end
+    
     return {
       :Attributes => args["Item"],
       :WritesUsed => 1
@@ -184,19 +241,39 @@ helpers do
     hashkey_value = nil
     rangekey_value = nil
     
-    halt 500 unless args['Key'].has_key?("HashKeyElement")
-    
-    if args['Key']['HashKeyElement'].has_key?('S')
-      hashkey_value = args['Key']['HashKeyElement']['S']
-    else
-      hashkey_value = BigDecimal(args['Key']['HashKeyElement']['N'])
-    end
-    
-    if args['Key'].has_key?('RangeKeyElement')
-      if args['Key']['RangeKeyElement'].has_key?('S')
-        rangekey_value = args['Key']['RangeKeyElement']['S']
+    if !args['Key'].has_key?("HashKeyElement")
+      hashkey_json = AWS_REDIS.get "tables.#{args['TableName']}.hashkey"
+      rangekey_json = AWS_REDIS.get "tables.#{args['TableName']}.rangekey"   
+
+      hashkey = JSON.parse(hashkey_json) if hashkey_json
+      rangekey = JSON.parse(rangekey_json) if rangekey_json
+      
+      if args["Key"][hashkey["AttributeName"]].has_key?("S")
+        hashkey_value = args["Key"][hashkey["AttributeName"]]["S"]
       else
-        rangekey_value = BigDecimal(args['Key']['RangeKeyElement']['N'])
+        hashkey_value = BigDecimal(args["Key"][hashkey["AttributeName"]]["N"])
+      end
+
+      if args["Key"][rangekey["AttributeName"]].has_key?("S")
+        rangekey_value = args["Key"][rangekey["AttributeName"]]["S"]
+      else
+        rangekey_value = BigDecimal(args["Key"][rangekey["AttributeName"]]["N"])
+      end
+    else
+      halt 500 unless args['Key'].has_key?("HashKeyElement")
+    
+      if args['Key']['HashKeyElement'].has_key?('S')
+        hashkey_value = args['Key']['HashKeyElement']['S']
+      else
+        hashkey_value = BigDecimal(args['Key']['HashKeyElement']['N'])
+      end
+    
+      if args['Key'].has_key?('RangeKeyElement')
+        if args['Key']['RangeKeyElement'].has_key?('S')
+          rangekey_value = args['Key']['RangeKeyElement']['S']
+        else
+          rangekey_value = BigDecimal(args['Key']['RangeKeyElement']['N'])
+        end
       end
     end
     
@@ -218,7 +295,7 @@ helpers do
     
     record_id = get_record_id(args)
     record_value = record_id ? JSON.parse(AWS_REDIS.get "tables.#{args['TableName']}.#{record_id}") : nil
-
+    
     return record_value ? {:Item => record_value, :ReadsUsed => 1}.to_json : {}.to_json
   end
   
@@ -240,13 +317,16 @@ helpers do
     return rangekey_value
   end
   
-  def query(args)
+  def query(args)    
     halt 500, 'no table name' unless args['TableName']
-    halt 500, 'no hash key value' unless args['HashKeyValue']
+    halt 500, 'no hash key value' unless (args['HashKeyValue'] or args['IndexName'])
     
     scan_index_forward = args.has_key?("ScanIndexForward") ? args["ScanIndexForward"] : true
-
-    if args["HashKeyValue"].first.first == "N"
+    key_conditions = nil
+    
+    if args.has_key?("IndexName")
+      key_conditions = args["KeyConditions"]
+    elsif args["HashKeyValue"].first.first == "N"
       hashkey_value = BigDecimal(args["HashKeyValue"].first.last)
     else
       hashkey_value = args["HashKeyValue"].first.last
@@ -267,7 +347,46 @@ helpers do
       exclusive_start_rangekey_value = args['ExclusiveStartKey']['RangeKeyElement'].values.last
     end
     
-    if args.has_key?("RangeKeyCondition")
+    if key_conditions # we are doing a new-style query
+      # remove the hash-key from the conditions, leaving only the key on which we are querying
+      query_key = key_conditions.keys.select{|k| k != 'hk' }.first
+      rangekey = key_conditions[query_key]
+      
+      hashkey_value = get_rangekey_value(key_conditions['hk']['AttributeValueList'].first)
+      rangekeys = AWS_REDIS.keys "tables.#{args['TableName']}.secondary_index.#{args['IndexName']}.#{hashkey_value}/*"
+
+      if rangekey['ComparisonOperator'] == "GE"
+        rangekey_value = get_rangekey_value(rangekey["AttributeValueList"].first)
+        rangekey_type = rangekey["AttributeValueList"].first.keys.first # "N" or "S"
+        
+        valid_rangekeys = rangekeys.select{|rk| 
+            (convert_rangekey_value(rk.split("/").last, rangekey_type) <=> rangekey_value) >= 0
+          }.sort{|a,b| 
+            convert_rangekey_value(a.split("/").last, rangekey_type) <=> convert_rangekey_value(b.split("/").last, rangekey_type)
+          }
+      elsif rangekey['ComparisonOperator'] == "LE"
+        rangekey_value = get_rangekey_value(rangekey["AttributeValueList"].first)
+        rangekey_type = rangekey["AttributeValueList"].first.keys.first # "N" or "S"
+        
+        valid_rangekeys = rangekeys.select{|rk| 
+            (convert_rangekey_value(rk.split("/").last, rangekey_type) <=> rangekey_value) <= 0
+          }.sort{|a,b| 
+            convert_rangekey_value(a.split("/").last, rangekey_type) <=> convert_rangekey_value(b.split("/").last, rangekey_type)
+          }
+      end
+      
+      if valid_rangekeys.length > 0
+        record_ids = []
+        valid_rangekeys.each do |rk|
+          record_ids += AWS_REDIS.smembers(rk)
+        end
+        record_keys = record_ids.map{|record_id| "tables.#{args['TableName']}.#{record_id}"}
+        items = record_keys.length > 0 ? (AWS_REDIS.mget *record_keys).map{|i| JSON.parse(i)} : []
+      else
+        items = []
+      end
+            
+    elsif args.has_key?("RangeKeyCondition")
       rangekeys = AWS_REDIS.hkeys "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}"
       rangekey_json = AWS_REDIS.get "tables.#{args['TableName']}.rangekey"
       
