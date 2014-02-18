@@ -112,12 +112,18 @@ helpers do
         if update["Action"] == "ADD"
           if update["Value"].has_key?("N")
             increment_amount = update["Value"]["N"].to_i
-            if record_value[key].has_key?("N")
-              record_value[key]["N"] = record_value[key]["N"].to_i + increment_amount
-            else
-              halt 500, "Incorrect type"
-            end
-          else
+
+            if record_value.has_key?(key)
+              if record_value[key].has_key?("N")
+                record_value[key]["N"] = record_value[key]["N"].to_i + increment_amount
+              else
+                halt 500, "Incorrect type"
+              end
+            else # it's new, so add it
+              record_value[key] = update["Value"]
+            end #record_value
+          elsif update["Value"].has_key?("S")
+            record_value[key] = update["Value"]
           end
         elsif update["Action"] == "DELETE"
           record_value.delete(key)
@@ -299,6 +305,12 @@ helpers do
     end
     
     if exclusive_start_hashkey_value and exclusive_start_rangekey_value
+
+      # So we move through it correctly depending on asc or desc
+      if scan_index_forward
+        items.reverse!
+      end
+      
       idx = 0
       items.each do |item|
         idx += 1
