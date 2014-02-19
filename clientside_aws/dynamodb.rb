@@ -82,9 +82,16 @@ helpers do
     AWS_REDIS.set "tables.#{args['TableName']}.auto_incr", 0
     
     if args.has_key?('LocalSecondaryIndexes')
-      args['LocalSecondaryIndexes'].each do |lsi|
-        index_name = lsi['IndexName']
-        AWS_REDIS.sadd "tables.#{args['TableName']}.secondary_indexes", lsi.to_json
+      args['LocalSecondaryIndexes'].each do |si|
+        index_name = si['IndexName']
+        AWS_REDIS.sadd "tables.#{args['TableName']}.secondary_indexes", si.to_json
+      end
+    end
+    
+    if args.has_key?('GlobalSecondaryIndexes')
+      args['GlobalSecondaryIndexes'].each do |si|
+        index_name = si['IndexName']
+        AWS_REDIS.sadd "tables.#{args['TableName']}.secondary_indexes", si.to_json
       end
     end
     
@@ -349,9 +356,9 @@ helpers do
     
     if key_conditions # we are doing a new-style query
       # remove the hash-key from the conditions, leaving only the key on which we are querying
-      query_key = key_conditions.keys.select{|k| k != 'hk' }.first
-      rangekey = key_conditions[query_key]
-      
+      rangekey_name = key_conditions.keys.select{|k| k != 'hk' }.first
+      rangekey = key_conditions[rangekey_name]
+
       hashkey_value = get_rangekey_value(key_conditions['hk']['AttributeValueList'].first)
       rangekeys = AWS_REDIS.keys "tables.#{args['TableName']}.secondary_index.#{args['IndexName']}.#{hashkey_value}/*"
 

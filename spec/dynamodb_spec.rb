@@ -136,7 +136,16 @@ describe 'Profiles Spec' do
           {:attribute_name => "timestamp", :key_type => "RANGE"}
           ],
         :projection => {:projection_type => "ALL"}
-        }])
+        }],
+      :global_secondary_indexes => [{
+        :index_name => "gs_index",
+        :key_schema => [
+          {:attribute_name => "visitor_id", :key_type => "HASH"},
+          {:attribute_name => "timestamp", :key_type => "RANGE"}
+          ],
+        :projection => {:projection_type => "ALL"},
+        :provisioned_throughput => {:read_capacity_units => 1, :write_capacity_units => 1}
+      }])
 
     now = Time.now.to_i
     
@@ -149,7 +158,24 @@ describe 'Profiles Spec' do
 
     item = dynamo_db.get_item(:table_name => "visited_by", :key => {'profile_id' => {'n' => '2'}, 'visitor_id' => {'n' => '2'}})
     item[:item].should be_nil
-    
+
+    # Try the global secondary index
+    results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "2"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => (Time.now.to_i).to_s}
+             ]
+           }}})
+    results[:member].length.should == 1
+
+    # Try the local secondary index
     results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'ls_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
            'hk' => {
              :comparison_operator => 'EQ',
@@ -197,6 +223,49 @@ describe 'Profiles Spec' do
              ]
            }}})
     results[:member].length.should == 3
+    
+    # Add some more profiles visited by 2
+    (3...10).each do |idx|
+      dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => idx.to_s}, 'visitor_id' => {'n' => '2'}, 
+        'timestamp' => {'n' => (now-idx).to_s}})
+    end
+
+    results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "2"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => (Time.now.to_i).to_s}
+             ]
+           }}})
+    results[:member].length.should == 8
+    results[:member].first['profile_id'][:n].should == "9"
+    results[:member].last['profile_id'][:n].should == "1"
+    
+    # reverse
+    results = dynamo_db.query({:table_name => 'visited_by', 
+      :scan_index_forward => false, 
+      :index_name => 'gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "2"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => (Time.now.to_i).to_s}
+             ]
+           }}})
+    results[:member].length.should == 8
+    results[:member].first['profile_id'][:n].should == "1"
+    results[:member].last['profile_id'][:n].should == "9"
     
   end
   
