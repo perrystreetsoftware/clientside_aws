@@ -93,7 +93,7 @@ get "/s3/*" do
   file = nil
   
   # handle S3 downloading from the 'servers'
-  if env['SERVER_NAME'].match(/\./)
+  if env['SERVER_NAME'].match(/[a-zA-Z]+\./)
     bucket = env['SERVER_NAME'].split(".").first     
     file = params[:splat].first
   elsif params[:splat].first.match(/\//)
