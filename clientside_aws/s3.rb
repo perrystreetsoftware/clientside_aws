@@ -93,13 +93,13 @@ get "/s3/*" do
   file = nil
   
   # handle S3 downloading from the 'servers'
-  if params[:splat].first.match(/\//)
+  if env['SERVER_NAME'].match(/\./)
+    bucket = env['SERVER_NAME'].split(".").first     
+    file = params[:splat].first
+  elsif params[:splat].first.match(/\//)
     bucket_file = params[:splat].first.split(/\//)
     bucket = bucket_file.shift
     file = bucket_file.join '/'
-  elsif env['SERVER_NAME'].match(/\./)
-    bucket = env['SERVER_NAME'].split(".").first     
-    file = params[:splat].first
   else
     halt 404, "unknown bucket"
   end

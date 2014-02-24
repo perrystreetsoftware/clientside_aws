@@ -32,7 +32,7 @@ configure :development do
   use Rack::Cors do
     allow do
       origins '*'
-      resource '*', :headers => :any, :methods => :all
+      resource '*', :headers => :any, :methods => [:get, :post, :options, :put]
     end
   end
   set :protection, :except => [:http_origin]
