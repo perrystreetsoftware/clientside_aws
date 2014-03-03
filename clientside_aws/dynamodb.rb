@@ -31,6 +31,18 @@ helpers do
     }.to_json   
   end
   
+  def clear_from_secondary_indices(table_name, record_id)
+    # Note the keys operation is a table scan that is brutally inefficient
+    secondary_indexes = AWS_REDIS.smembers "tables.#{table_name}.secondary_indexes"
+    secondary_indexes.each do |si_raw|
+      si = JSON.parse(si_raw)
+      keys = AWS_REDIS.keys "tables.#{table_name}.secondary_index.#{si["IndexName"]}.*"
+      keys.each do |key|
+        AWS_REDIS.srem key, record_id
+      end
+    end
+  end
+  
   def get_key_schema(table)
     
     hashkey_json = AWS_REDIS.get "tables.#{table}.hashkey"
@@ -192,16 +204,26 @@ helpers do
     
     halt 500 unless hashkey_value    
     
-    record_id = AWS_REDIS.incr "tables.#{args['TableName']}.auto_incr"
-    AWS_REDIS.lpush "tables.#{args['TableName']}.items", record_id
-    AWS_REDIS.set "tables.#{args['TableName']}.#{record_id}", args["Item"].to_json
-    AWS_REDIS.hset "tables.#{args['TableName']}.hashkey_index", hashkey_value, record_id
-    
     if rangekey
       rangekey_value = get_rangekey_value(args["Item"][rangekey["AttributeName"]])
-      AWS_REDIS.hset "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value, record_id
+      
+      if AWS_REDIS.hexists("tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value)
+        record_id = AWS_REDIS.hget "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value
+        clear_from_secondary_indices(args['TableName'], record_id)
+      else
+        record_id = AWS_REDIS.incr "tables.#{args['TableName']}.auto_incr"
+        AWS_REDIS.hset "tables.#{args['TableName']}.hashkey_index.#{hashkey_value}", rangekey_value, record_id
+        AWS_REDIS.lpush "tables.#{args['TableName']}.items", record_id
+        AWS_REDIS.hset "tables.#{args['TableName']}.hashkey_index", hashkey_value, record_id
+      end
+    else
+      record_id = AWS_REDIS.incr "tables.#{args['TableName']}.auto_incr"
+      AWS_REDIS.lpush "tables.#{args['TableName']}.items", record_id
+      AWS_REDIS.hset "tables.#{args['TableName']}.hashkey_index", hashkey_value, record_id
     end
     
+    AWS_REDIS.set "tables.#{args['TableName']}.#{record_id}", args["Item"].to_json
+        
     # setup secondary indexes
     secondary_indexes = AWS_REDIS.smembers "tables.#{args['TableName']}.secondary_indexes"
     secondary_indexes.each do |raw|
@@ -493,15 +515,36 @@ helpers do
   def delete_item(args)
     halt 500, 'no table name' unless args['TableName']
     halt 500, 'no key' unless args['Key']
-    
-    if args["Key"]["HashKeyElement"].has_key?("N")
-      hashkey_value = BigDecimal(args['Key']['HashKeyElement']['N'])
+        
+    if args["Key"].has_key?("HashKeyElement")
+      if args["Key"]["HashKeyElement"].has_key?("N")
+        hashkey_value = BigDecimal(args['Key']['HashKeyElement']['N'])
+      else
+        hashkey_value = args['Key']['HashKeyElement']['S']
+      end
     else
-      hashkey_value = args['Key']['HashKeyElement']['S']
+      hashkey_raw = AWS_REDIS.get "tables.#{args['TableName']}.hashkey"
+      hashkey = JSON.parse(hashkey_raw)
+      if hashkey['AttributeType'] == "N"
+        hashkey_value = BigDecimal(args['Key'][hashkey['AttributeName']][hashkey['AttributeType']])
+      else
+        hashkey_value = args['Key'][hashkey['AttributeName']][hashkey['AttributeType']]
+      end
     end
-    
+
+    rangekey_value = nil
     if args["Key"].has_key?("RangeKeyElement")
       rangekey_value = get_rangekey_value(args['Key']['RangeKeyElement'])
+    else
+      rangekey_raw = AWS_REDIS.get "tables.#{args['TableName']}.rangekey"
+      if rangekey_raw
+        rangekey = JSON.parse(rangekey_raw)
+        if rangekey['AttributeType'] == "N"
+          rangekey_value = BigDecimal(args['Key'][rangekey['AttributeName']][rangekey['AttributeType']])
+        else
+          rangekey_value = args['Key'][rangekey['AttributeName']][rangekey['AttributeType']]
+        end
+      end
     end
     
     if hashkey_value and rangekey_value
@@ -509,7 +552,7 @@ helpers do
     else
       record_id = AWS_REDIS.hget "tables.#{args['TableName']}.hashkey_index", hashkey_value      
     end
-
+    
     item = nil
     if record_id    
       AWS_REDIS.hdel "tables.#{args['TableName']}.hashkey_index", hashkey_value
@@ -518,6 +561,8 @@ helpers do
       end
       item = JSON.parse(AWS_REDIS.get "tables.#{args['TableName']}.#{record_id}")
       AWS_REDIS.del "tables.#{args['TableName']}.#{record_id}"
+      
+      clear_from_secondary_indices(args['TableName'], record_id)
     end   
      
     return {"Item" => item, "ReadsUsed" => 1}.to_json

@@ -114,6 +114,84 @@ describe 'Profiles Spec' do
         
   end
 
+  it "should handle create, delete" do
+    dynamo_db = AWS::DynamoDB::Client.new(
+      :api_version => '2012-08-10',
+      :access_key_id => "...",
+      :secret_access_key => "...")
+      
+    test_table = dynamo_db.create_table(
+      :table_name => "cd_table", 
+      :provisioned_throughput => {:read_capacity_units => 1, :write_capacity_units => 1},
+      :attribute_definitions => [
+        {:attribute_name => 'profile_id', :attribute_type => "N"}, 
+        {:attribute_name => 'visitor_id', :attribute_type => "N"}],
+      :key_schema => [
+        {:attribute_name => "profile_id", :key_type => "HASH"},
+        {:attribute_name => "visitor_id", :key_type => "RANGE"}],
+      :local_secondary_indexes => [{
+        :index_name => "cd_ls_index",
+        :key_schema => [
+          {:attribute_name => "profile_id", :key_type => "HASH"},
+          {:attribute_name => "timestamp", :key_type => "RANGE"}
+          ],
+        :projection => {:projection_type => "ALL"}
+        }],
+      :global_secondary_indexes => [{
+        :index_name => "cd_gs_index",
+        :key_schema => [
+          {:attribute_name => "visitor_id", :key_type => "HASH"},
+          {:attribute_name => "timestamp", :key_type => "RANGE"}
+          ],
+        :projection => {:projection_type => "ALL"},
+        :provisioned_throughput => {:read_capacity_units => 1, :write_capacity_units => 1}
+      }])
+    dynamo_db.put_item(:table_name => "cd_table", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}, 
+      'timestamp' => {'n' => 3.to_s}})
+
+    response = dynamo_db.get_item(:table_name => "cd_table", :key => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}})
+    response[:item].should_not be_nil
+
+    # Test query
+    results = dynamo_db.query({:table_name => 'cd_table', :index_name => 'cd_gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "2"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => 3.to_s}
+             ]
+           }}})
+    results[:member].length.should == 1
+
+    dynamo_db.delete_item(:table_name => "cd_table", :key => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}})
+
+    response = dynamo_db.get_item(:table_name => "cd_table", :key => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}})
+    response[:item].should be_nil
+    
+    # Test query
+    results = dynamo_db.query({:table_name => 'cd_table', :index_name => 'cd_gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
+           'hk' => {
+             :comparison_operator => 'EQ',
+            :attribute_value_list => [
+               {'n' => "2"}
+             ]
+           },
+           'timestamp' => {
+            :comparison_operator => 'LE',
+            :attribute_value_list => [
+               {'n' => 3.to_s}
+             ]
+           }}})
+    results[:member].length.should == 0
+    
+  end
+  
+  
   it "should handle local secondary indexes" do
     dynamo_db = AWS::DynamoDB::Client.new(
       :api_version => '2012-08-10',
@@ -148,7 +226,26 @@ describe 'Profiles Spec' do
       }])
 
     now = Time.now.to_i
+
+    # Test put and get
     
+    # 2 visits 1
+    dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}, 
+      'timestamp' => {'n' => 3.to_s}})
+    item = dynamo_db.get_item(:table_name => "visited_by", :key => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}})
+    item.should_not be_nil
+    item[:item]['profile_id'][:n].should == "1"
+    item[:item]['timestamp'][:n].should == "3"
+
+    # 2 visits 1 again
+    dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}, 
+      'timestamp' => {'n' => 4.to_s}})
+    item = dynamo_db.get_item(:table_name => "visited_by", :key => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}})
+    item.should_not be_nil
+    item[:item]['profile_id'][:n].should == "1"
+    item[:item]['timestamp'][:n].should == "4"
+    
+    # 2 visits 1 a third time, with timestamp of now
     dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '2'}, 
       'timestamp' => {'n' => now.to_s}})
 
