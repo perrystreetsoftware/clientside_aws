@@ -591,7 +591,7 @@ helpers do
   
 end
 
-post '/dynamodb/?' do
+post '/dynamodb.localhost.amazonaws.com/?' do
   req = Rack::Request.new(env)
   
   amz_target = nil

@@ -1,4 +1,5 @@
 AWS::Core::Configuration.module_eval do
+  ENV['AWS_REGION'] = "localhost"
   port = ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
   add_service "DynamoDB", "dynamo_db", "localhost:#{port}/dynamodb"
   add_service 'SQS', 'sqs', "localhost:#{port}/sqs"
@@ -6,11 +7,13 @@ AWS::Core::Configuration.module_eval do
   add_service 'ElasticTranscoder', 'elastic_transcoder', "localhost:#{port}/elastic_transcoder"
   add_service 'SimpleEmailService', 'simple_email_service', "localhost:#{port}/ses"
   add_service 'SNS', 'sns', "localhost:#{port}/sns"
+
+  add_option :sqs_verify_checksums, false, :boolean => true
+
 end
 
-
 module AWS
-  module Core    
+  module Core   
     class Client
       if ENV['RACK_ENV'] == 'test'
         require 'rack/test'
@@ -22,6 +25,7 @@ module AWS
       def app
         Sinatra::Application
       end
+      
       
       private
       def make_sync_request response
@@ -139,7 +143,6 @@ module AWS
 
               response = new_response do
                 req = client.send(:build_request, name, options)
-                # req.add_authorization!(credential_provider)
                 req
               end
 

@@ -147,14 +147,14 @@ helpers do
   
 end
 
-post "/sqs/?" do
+post "/sqs.localhost.amazonaws.com/?" do
   case params[:Action]
   when "GetQueueUrl"
     get_queue_url()
   end
 end
 
-post %r{/sqs/(.*)} do
+post %r{/sqs.localhost.amazonaws.com/(.*)} do
   case params[:Action]    
   when "SendMessage"
     send_message()

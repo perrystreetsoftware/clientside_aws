@@ -78,7 +78,7 @@ helpers do
     
 end 
 
-get "/s3/" do 
+get "/s3.localhost.amazonaws.com/" do 
   if env['SERVER_NAME'].match(/\./)
     bucket = env['SERVER_NAME'].split(".").first
     list_objects(bucket)
@@ -88,7 +88,7 @@ get "/s3/" do
   status 200
 end
 
-get "/s3/*" do
+get "/s3.localhost.amazonaws.com/*" do
   bucket = nil
   file = nil
   
@@ -116,7 +116,7 @@ get "/s3/*" do
   status 200
 end
 
-delete "/s3/*" do 
+delete "/s3.localhost.amazonaws.com/*" do 
   # delete the given key
   if env['SERVER_NAME'].match(/\./)
     bucket = env['SERVER_NAME'].split(".").first
@@ -126,14 +126,14 @@ delete "/s3/*" do
 end
 
 
-put "/s3/" do
+put "/s3.localhost.amazonaws.com/" do
   # bucket creation
   bucket = env['SERVER_NAME'].split(".").first
   AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
   status 200
 end
 
-put "/s3/*" do | file_location |
+put "/s3.localhost.amazonaws.com/*" do | file_location |
   # upload the file (chunking not implemented) to fake S3
   if file_location
     file_location = file_location[1..-1] if '/' == file_location[0]
@@ -156,7 +156,7 @@ end
 
 
 
-post "/s3" do
+post "/s3.localhost.amazonaws.com/?" do
  # upload the file (chunking not implemented) to fake S3
  file_location = params[:key]
   if file_location
@@ -177,4 +177,3 @@ post "/s3" do
   end
   status 200
 end
-

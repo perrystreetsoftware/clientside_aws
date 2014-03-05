@@ -13,15 +13,14 @@ Sinatra::Base.set :logging, false
 
 RSpec.configure do |config|
   config.include Rack::Test::Methods
-  @pid1
   
   config.before(:suite) do
-    @pid1 = fork do
+    PID1 = fork do
       $stdout = File.new('/dev/null', 'w')
       File.open("test1.conf", 'w') {|f| f.write("port 6380\ndbfilename test1.rdb\nloglevel warning") }
       exec "redis-server test1.conf"
     end
-    puts "PID1 is #{@pid1}\n\n"
+    puts "PID1 is #{PID1}\n\n"
     sleep(3)
 
     clean_redis
@@ -33,7 +32,7 @@ RSpec.configure do |config|
     puts "Killing redis-server"
     
     STDOUT.flush
-    Process.kill("KILL", @pid1)
+    Process.kill("KILL", PID1)
     FileUtils.rm "test1.rdb" if File.exists?("test1.rdb")
     FileUtils.rm "test1.conf" if File.exists?("test1.conf")
     Process.waitall
