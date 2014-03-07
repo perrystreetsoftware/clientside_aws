@@ -147,14 +147,7 @@ helpers do
   
 end
 
-post "/sqs.localhost.amazonaws.com/?" do
-  case params[:Action]
-  when "GetQueueUrl"
-    get_queue_url()
-  end
-end
-
-post %r{/sqs.localhost.amazonaws.com/(.*)} do
+post %r{/sqs(.localhost.amazonaws.com)?/(.*)} do
   case params[:Action]    
   when "SendMessage"
     send_message()
@@ -164,5 +157,9 @@ post %r{/sqs.localhost.amazonaws.com/(.*)} do
     delete_message()
   when "GetQueueAttributes"
     get_queue_attributes()
+  when "GetQueueUrl"
+    get_queue_url()
+  else
+    halt 500, "Unknown action #{params.inspect}"
   end  
 end

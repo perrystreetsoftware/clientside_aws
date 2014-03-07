@@ -78,26 +78,15 @@ helpers do
     
 end 
 
-get "/s3.localhost.amazonaws.com/" do 
-  if env['SERVER_NAME'].match(/\./)
-    bucket = env['SERVER_NAME'].split(".").first
-    list_objects(bucket)
-  else
-    list_buckets
-  end
-  status 200
-end
-
-get "/s3.localhost.amazonaws.com/*" do
+get %r{/s3(.localhost.amazonaws.com)?/(.+)} do
   bucket = nil
-  file = nil
+  file = params[:captures].last
   
   # handle S3 downloading from the 'servers'
   if env['SERVER_NAME'].match(/[a-zA-Z]+\./)
     bucket = env['SERVER_NAME'].split(".").first     
-    file = params[:splat].first
-  elsif params[:splat].first.match(/\//)
-    bucket_file = params[:splat].first.split(/\//)
+  elsif file.match(/\//)
+    bucket_file = file.split(/\//)
     bucket = bucket_file.shift
     file = bucket_file.join '/'
   else
@@ -116,24 +105,38 @@ get "/s3.localhost.amazonaws.com/*" do
   status 200
 end
 
-delete "/s3.localhost.amazonaws.com/*" do 
+get %r{^/s3(.localhost.amazonaws.com)?/$} do 
+  if env['SERVER_NAME'].match(/\./)
+    bucket = env['SERVER_NAME'].split(".").first
+    list_objects(bucket)
+  else
+    list_buckets
+  end
+  status 200
+end
+
+delete %r{/s3(.localhost.amazonaws.com)?/(.+)} do 
+  file_name = params[:captures].last
+  
   # delete the given key
   if env['SERVER_NAME'].match(/\./)
     bucket = env['SERVER_NAME'].split(".").first
-    AWS_REDIS.del "s3:bucket:#{bucket}:#{params[:splat].first}"
+    AWS_REDIS.del "s3:bucket:#{bucket}:#{file_name}"
   end
   status 200
 end
 
 
-put "/s3.localhost.amazonaws.com/" do
+put %r{/s3(.localhost.amazonaws.com)?/$} do
   # bucket creation
   bucket = env['SERVER_NAME'].split(".").first
   AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
   status 200
 end
 
-put "/s3.localhost.amazonaws.com/*" do | file_location |
+put %r{/s3(.localhost.amazonaws.com)?/(.+)} do
+  file_location = params[:captures].last
+  
   # upload the file (chunking not implemented) to fake S3
   if file_location
     file_location = file_location[1..-1] if '/' == file_location[0]
@@ -154,9 +157,7 @@ put "/s3.localhost.amazonaws.com/*" do | file_location |
   status 200
 end
 
-
-
-post "/s3.localhost.amazonaws.com/?" do
+post %r{/s3(.localhost.amazonaws.com)?/?} do
  # upload the file (chunking not implemented) to fake S3
  file_location = params[:key]
   if file_location

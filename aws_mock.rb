@@ -9,6 +9,7 @@ AWS::Core::Configuration.module_eval do
   add_service 'SNS', 'sns', "localhost:#{port}/sns"
 
   add_option :sqs_verify_checksums, false, :boolean => true
+  add_option :override_port, ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
 
 end
 
@@ -57,7 +58,8 @@ module AWS
               post new_path, body, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              mock_response = HTTParty::post("http://#{response.http_request.host}#{path}", :headers => headers, :body => body)
+              host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
+              mock_response = HTTParty::post("http://#{host_and_port}#{path}", :headers => headers, :body => body)
             end
           elsif response.http_request.http_method == "GET"   
             if ENV['RACK_ENV'] == 'test'
@@ -65,7 +67,8 @@ module AWS
               get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)    
+              host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
+              mock_response = HTTParty::get("http://#{host_and_port}#{path}", :headers => headers, :query => params)    
             end
           elsif response.http_request.http_method == "HEAD"  
             #NOTE: a head request via AWS breaks the specifications when there is an error
@@ -77,7 +80,8 @@ module AWS
               get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              mock_response = HTTParty::get("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+              host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
+              mock_response = HTTParty::get("http://#{host_and_port}#{path}", :headers => headers, :query => params)
             end  
           elsif response.http_request.http_method == "DELETE"
             if ENV['RACK_ENV'] == 'test'
@@ -85,7 +89,8 @@ module AWS
               delete new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              mock_response = HTTParty::delete("http://#{response.http_request.host}#{path}", :headers => headers, :query => params)
+              host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
+              mock_response = HTTParty::delete("http://#{host_and_port}#{path}", :headers => headers, :query => params)
             end
           elsif response.http_request.http_method == "PUT"
             if ENV['RACK_ENV'] == 'test'
@@ -94,7 +99,8 @@ module AWS
               put new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
-              mock_response = HTTParty::put("http://#{response.http_request.host}#{path}", :query => params, :headers => headers, :body=> body)
+              host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
+              mock_response = HTTParty::put("http://#{host_and_port}#{path}", :query => params, :headers => headers, :body=> body)
             end
           end
         
@@ -211,20 +217,6 @@ module AWS # override for constructing POST requests for client
         uri_class = secure? ? URI::HTTPS : URI::HTTP
         uri_class.build(:host => request.host, :path => request.path, :query => request.querystring, :port => request.port)
       end
-    end
-  end
-end
-
-module AWS
-  class SQS
-
-    # @private
-    class Request < Core::Http::Request
-
-      def host
-        return @host + ":" + (ENV['RACK_ENV'] == 'test' ? "4567" : "4568")
-      end
-      
     end
   end
 end
