@@ -349,7 +349,8 @@ helpers do
   def query(args)    
     halt 500, 'no table name' unless args['TableName']
     halt 500, 'no hash key value' unless (args['HashKeyValue'] or args['IndexName'])
-    
+
+    limit = args.has_key?("Limit") ? args["Limit"] : nil
     scan_index_forward = args.has_key?("ScanIndexForward") ? args["ScanIndexForward"] : true
     key_conditions = nil
     
@@ -489,12 +490,12 @@ helpers do
       }
     end
     
-    if items and items.count > 0
-      hashkey_value_dict = items.last[hashkey_name]
-      rangekey_value_dict = items.last[rangekey_name]
+    if items and items.count > 0 and limit and limit < items.count
+      hashkey_value_dict = items[limit][hashkey_name]
+      rangekey_value_dict = items[limit][rangekey_name]
       hashkey_value_type = hashkey_value_dict.keys.first
       rangekey_value_type = rangekey_value_dict.keys.first
-      
+    
       hashkey_value = hashkey_value_dict.values.first
       rangekey_value = rangekey_value_dict.values.first
 
@@ -502,9 +503,14 @@ helpers do
         :HashKeyElement => {hashkey_value_type => hashkey_value},
         :RangeKeyElement => {rangekey_value_type => rangekey_value},
       }
-    end    
+      items = items[0...limit] # apply limit
+    end
 
     result = {:Count => items.length, :Items => items, :ReadsUsed => 1}
+    
+    # This should not be the last key returned, but instead the next key you would
+    # have returned but didn't. 
+    
     if last_evaluated_key
       result[:LastEvaluatedKey] = last_evaluated_key
     end
