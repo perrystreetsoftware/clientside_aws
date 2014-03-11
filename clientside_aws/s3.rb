@@ -1,3 +1,5 @@
+require 'builder'
+
 helpers do
   def list_buckets
     buckets = AWS_REDIS.keys "s3:bucket:*"
