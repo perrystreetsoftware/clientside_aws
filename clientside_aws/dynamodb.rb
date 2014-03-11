@@ -379,10 +379,10 @@ helpers do
     
     if key_conditions # we are doing a new-style query
       # remove the hash-key from the conditions, leaving only the key on which we are querying
-      rangekey_name = key_conditions.keys.select{|k| k != 'hk' }.first
+      rangekey_name = key_conditions.keys.select{|k| k != hashkey_name }.first
       rangekey = key_conditions[rangekey_name]
 
-      hashkey_value = get_rangekey_value(key_conditions['hk']['AttributeValueList'].first)
+      hashkey_value = get_rangekey_value(key_conditions[hashkey_name]['AttributeValueList'].first)
       rangekeys = AWS_REDIS.keys "tables.#{args['TableName']}.secondary_index.#{args['IndexName']}.#{hashkey_value}/*"
 
       if rangekey['ComparisonOperator'] == "GE"
