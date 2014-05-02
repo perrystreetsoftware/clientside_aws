@@ -346,26 +346,27 @@ helpers do
     return rangekey_value
   end
   
-  def query(args)    
+  def query(args)
     halt 500, 'no table name' unless args['TableName']
-    halt 500, 'no hash key value' unless (args['HashKeyValue'] or args['IndexName'])
+    halt 500, 'no hash key value' unless (args['HashKeyValue'] or args['IndexName'] or args['KeyConditions'])
 
     limit = args.has_key?("Limit") ? args["Limit"] : nil
     scan_index_forward = args.has_key?("ScanIndexForward") ? args["ScanIndexForward"] : true
     key_conditions = nil
+    hashkey_name = JSON::parse((AWS_REDIS.get "tables.#{args['TableName']}.hashkey"))['AttributeName']
     
     if args.has_key?("IndexName")
       key_conditions = args["KeyConditions"]
-    elsif args["HashKeyValue"].first.first == "N"
+    elsif (args.has_key?("HashKeyValue") and args['HashKeyValue'].first.first == "N")
       hashkey_value = BigDecimal(args["HashKeyValue"].first.last)
-    else
+    elsif args.has_key?("HashKeyValue")
       hashkey_value = args["HashKeyValue"].first.last
+    elsif args.has_key?("KeyConditions")
+      hashkey_value = get_rangekey_value(args["KeyConditions"][hashkey_name]["AttributeValueList"].first)
     end
     
     exclusive_start_key = nil
     last_evaluated_key = nil
-
-    hashkey_name = JSON::parse((AWS_REDIS.get "tables.#{args['TableName']}.hashkey"))['AttributeName']
     
     rangekey_obj = JSON::parse((AWS_REDIS.get "tables.#{args['TableName']}.rangekey"))
     rangekey_name = rangekey_obj['AttributeName']
