@@ -138,7 +138,7 @@ end
 
 put %r{/s3(.localhost.amazonaws.com)?/(.+)} do
   file_location = params[:captures].last
-  
+
   # upload the file (chunking not implemented) to fake S3
   if file_location
     file_location = file_location[1..-1] if '/' == file_location[0]
@@ -149,6 +149,14 @@ put %r{/s3(.localhost.amazonaws.com)?/(.+)} do
     else 
       body_send = params[:body]
     end
+    
+    # Handle the copy_XXX case
+    if ((body_send.nil? or body_send.length == 0) and (env.has_key?("HTTP_X_AMZ_COPY_SOURCE") or env.has_key?("x-amz-copy-source")))
+      copy_source = env["HTTP_X_AMZ_COPY_SOURCE"] || env["x-amz-copy-source"]
+      (bucket, file) = copy_source.split("/")
+      body_send = downloadFile(bucket, file)
+    end
+    
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
     if env.has_key?('content-type')
       AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['content-type']
