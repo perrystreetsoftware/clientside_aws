@@ -153,8 +153,8 @@ put %r{/s3(.localhost.amazonaws.com)?/(.+)} do
     # Handle the copy_XXX case
     if ((body_send.nil? or body_send.length == 0) and (env.has_key?("HTTP_X_AMZ_COPY_SOURCE") or env.has_key?("x-amz-copy-source")))
       copy_source = env["HTTP_X_AMZ_COPY_SOURCE"] || env["x-amz-copy-source"]
-      (bucket, file) = copy_source.split("/")
-      body_send = downloadFile(bucket, file)
+      (srcbucket, srcfile) = copy_source.split("/")
+      body_send = downloadFile(srcbucket, srcfile)
     end
     
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
