@@ -11,3 +11,4 @@ gem "aws-sdk", "1.35.0"
 gem 'rack-cors', '0.2.9', :require => 'rack/cors'
 gem "rspec", "2.14.1"
 gem "monkey-lib", "0.5.4"
+gem "sinatra-sugar", "0.5.1"
