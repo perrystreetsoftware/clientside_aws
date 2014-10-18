@@ -147,7 +147,7 @@ helpers do
   
 end
 
-post %r{/sqs\.(\w+?)\.amazonaws\.com/(.*)} do
+post %r{/sqs(\.(\w+?)\.amazonaws\.com)?/(.*)} do
   case params[:Action]    
   when "SendMessage"
     send_message()
