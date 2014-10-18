@@ -80,25 +80,14 @@ helpers do
     
 end 
 
-get %r{/s3(.localhost.amazonaws.com)?/(.+)} do
-  bucket = nil
-  file = params[:captures].last
+get %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do
+  bucket = params[:captures][1]
+  file_name = params[:captures][2]
   
-  # handle S3 downloading from the 'servers'
-  if env['SERVER_NAME'].match(/[a-zA-Z]+\./)
-    bucket = env['SERVER_NAME'].split(".").first     
-  elsif file.match(/\//)
-    bucket_file = file.split(/\//)
-    bucket = bucket_file.shift
-    file = bucket_file.join '/'
-  else
-    halt 404, "unknown bucket"
-  end
-   
-  halt 404, objectNotFound if AWS_REDIS.hget("s3:bucket:#{bucket}:#{file}", "body").nil?
+  halt 404, objectNotFound if AWS_REDIS.hget("s3:bucket:#{bucket}:#{file_name}", "body").nil?
 
-  body = downloadFile(bucket, file)
-  content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{file}", "content-type")
+  body = downloadFile(bucket, file_name)
+  content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{file_name}", "content-type")
   response.headers["Content-Type"] = content_type.nil? ? 'html' : content_type
   # response.headers["Content-Length"] = body.length.to_s
   response.headers["ETag"] = Digest::MD5.hexdigest(body)
@@ -107,43 +96,42 @@ get %r{/s3(.localhost.amazonaws.com)?/(.+)} do
   status 200
 end
 
-get %r{^/s3(.localhost.amazonaws.com)?/$} do 
-  if env['SERVER_NAME'].match(/\./)
-    bucket = env['SERVER_NAME'].split(".").first
-    list_objects(bucket)
-  else
-    list_buckets
-  end
+get %r{^/s3(.*?\.amazonaws\.com)?/(.+?)/?$} do 
+  bucket = params[:captures][1]
+  list_objects(bucket)
   status 200
 end
 
-delete %r{/s3(.localhost.amazonaws.com)?/(.+)} do 
-  file_name = params[:captures].last
-  
-  # delete the given key
-  if env['SERVER_NAME'].match(/\./)
-    bucket = env['SERVER_NAME'].split(".").first
-    AWS_REDIS.del "s3:bucket:#{bucket}:#{file_name}"
-  end
+get %r{^/s3(.*?\.amazonaws\.com)?/$} do 
+  bucket = params[:captures][1]
+  list_buckets
+  status 200
+end
+
+delete %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do 
+  bucket = params[:captures][1]
+  file_name = params[:captures][2]
+  AWS_REDIS.del "s3:bucket:#{bucket}:#{file_name}"
   status 200
 end
 
 
-put %r{/s3(.localhost.amazonaws.com)?/$} do
-  # bucket creation
-  bucket = env['SERVER_NAME'].split(".").first
-  AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
-  status 200
-end
+# put %r{/s3(.localhost.amazonaws.com)?/(.+?)/?$} do
+#   # bucket creation
+#   bucket = params[:captures][1]
+#   AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
+#   status 200
+# end
 
-put %r{/s3(.localhost.amazonaws.com)?/(.+)} do
-  file_location = params[:captures].last
+put %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do
+  bucket = params[:captures][1]
+  file_name = params[:captures][2]
 
   # upload the file (chunking not implemented) to fake S3
-  if file_location
-    file_location = file_location[1..-1] if '/' == file_location[0]
+  if file_name and bucket
+    file_name = file_name[1..-1] if '/' == file_name[0]
     body_send = nil
-    bucket = env['SERVER_NAME'].split(".").first
+
     if ENV['RACK_ENV'] == 'development'
       body_send = request.body.read
     else 
@@ -157,33 +145,33 @@ put %r{/s3(.localhost.amazonaws.com)?/(.+)} do
       body_send = downloadFile(srcbucket, srcfile)
     end
     
-    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "body", body_send
     if env.has_key?('content-type')
-      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['content-type']
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "content-type", env['content-type']
     elsif env.has_key?('CONTENT_TYPE')
-      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['CONTENT_TYPE']
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "content-type", env['CONTENT_TYPE']
     end
   end
   status 200
 end
 
-post %r{/s3(.localhost.amazonaws.com)?/?} do
+post %r{/s3(.*?\.amazonaws\.com)?/(.+?)/?} do
  # upload the file (chunking not implemented) to fake S3
- file_location = params[:key]
-  if file_location
-    file_location = file_location[1..-1] if file_location.start_with? '/'
+ bucket = params[:captures][1]
+ file_name = params[:key]
+  if file_name
+    file_name = file_name[1..-1] if file_name.start_with? '/'
     body_send = nil
-    bucket = env['SERVER_NAME'].split(".").first
     if ENV['RACK_ENV'] == 'development'
       body_send = params[:file][:tempfile].read
     else 
       body_send = params[:body]
     end
-   AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "body", body_send
+   AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "body", body_send
     if env.has_key?('content-type')
-      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['content-type']
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "content-type", env['content-type']
     elsif env.has_key?('CONTENT_TYPE')
-      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_location}", "content-type", env['CONTENT_TYPE']
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "content-type", env['CONTENT_TYPE']
     end
   end
   status 200

@@ -202,6 +202,15 @@ end
 
 module AWS # override for constructing POST requests for client
   class S3
+    class Client < Core::Client
+      module Validators
+        # this keeps it from fucking up our hostname
+        def path_style_bucket_name? bucket_name
+          true
+        end
+      end
+    end
+    
     class PresignedPost
       def secure?
         false
