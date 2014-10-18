@@ -31,7 +31,7 @@ module AWS
       private
       def make_sync_request response
 
-        if response.http_request.host.match(/localhost/)
+        if response.http_request.host.match(ENV['AWS_REGION'])
           headers = Hash.new
           response.http_request.headers.each do |k,v|
             headers[k] = v
