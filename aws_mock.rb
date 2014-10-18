@@ -1,15 +1,15 @@
 AWS::Core::Configuration.module_eval do
-  ENV['AWS_REGION'] = "localhost"
-  port = ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
-  add_service "DynamoDB", "dynamo_db", "localhost:#{port}/dynamodb"
-  add_service 'SQS', 'sqs', "localhost:#{port}/sqs"
-  add_service 'S3', 's3', "localhost:#{port}/s3"
-  add_service 'ElasticTranscoder', 'elastic_transcoder', "localhost:#{port}/elastic_transcoder"
-  add_service 'SimpleEmailService', 'simple_email_service', "localhost:#{port}/ses"
-  add_service 'SNS', 'sns', "localhost:#{port}/sns"
+  ENV['AWS_REGION'] = ENV['RACK_ENV'] == 'test' ? "localhost" : "aws"
+  port = ENV['RACK_ENV'] == 'test' ? "4567" : ENV['AWS_PORT_4567_TCP_PORT']
+  add_service "DynamoDB", "dynamo_db", "#{ENV['AWS_REGION']}:#{port}/dynamodb"
+  add_service 'SQS', 'sqs', "#{ENV['AWS_REGION']}:#{port}/sqs"
+  add_service 'S3', 's3', "#{ENV['AWS_REGION']}:#{port}/s3"
+  add_service 'ElasticTranscoder', 'elastic_transcoder', "#{ENV['AWS_REGION']}:#{port}/elastic_transcoder"
+  add_service 'SimpleEmailService', 'simple_email_service', "#{ENV['AWS_REGION']}:#{port}/ses"
+  add_service 'SNS', 'sns', "#{ENV['AWS_REGION']}:#{port}/sns"
 
   add_option :sqs_verify_checksums, false, :boolean => true
-  add_option :override_port, ENV['RACK_ENV'] == 'test' ? "4567" : "4568"
+  add_option :override_port, port
 
 end
 
