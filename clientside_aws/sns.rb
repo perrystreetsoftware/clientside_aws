@@ -14,11 +14,11 @@ helpers do
   end
 end
 
-get %r{/sns(.\w+?).amazonaws.com/(.*)} do
+get %r{/sns\.(\w+?)\.amazonaws\.com/(.*)} do
   200
 end
 
-post %r{/sns.(\w+?).amazonaws.com/(.*)} do
+post %r{/sns\.(\w+?)\.amazonaws\.com/(.*)} do
   case params[:Action]
   when "CreatePlatformEndpoint"
     create_platform_endpoint()

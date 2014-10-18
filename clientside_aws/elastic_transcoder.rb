@@ -129,7 +129,7 @@ helpers do
   end  
 end
 
-post %r{/elastic_transcoder(.localhost.amazonaws.com)?/2012-09-25/pipelines} do
+post %r{/elastic_transcoder\.(\w+?)\.amazonaws\.com/2012-09-25/pipelines} do
   args = JSON::parse(env['rack.input'].read)
   
   AWS_REDIS.set "pipeline", args.to_json
@@ -146,7 +146,7 @@ post %r{/elastic_transcoder(.localhost.amazonaws.com)?/2012-09-25/pipelines} do
   }}.to_json
 end
 
-post %r{/elastic_transcoder(.localhost.amazonaws.com)?/2012-09-25/jobs} do
+post %r{/elastic_transcoder\.(\w+?)\.amazonaws\.com/2012-09-25/jobs} do
   args = JSON::parse(env['rack.input'].read)
     
   pipeline = JSON.parse(AWS_REDIS.get("pipeline"))

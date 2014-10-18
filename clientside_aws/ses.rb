@@ -3,7 +3,7 @@ post "/ses/?" do
   200
 end
 
-post %r{/ses.(\w+?).amazonaws.com/(.*)} do
+post %r{/ses\.(\w+?)\.amazonaws\.com/(.*)} do
   # No-op for now
   200
 end
