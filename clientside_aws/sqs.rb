@@ -72,7 +72,8 @@ helpers do
     
     results_json = []
     max_messages.times do
-      results_json << JSON.parse(AWS_REDIS.rpop queue)
+      raw_message = AWS_REDIS.rpop queue
+      results_json << JSON.parse(raw_message.force_encoding("UTF-8"))
       break if (AWS_REDIS.llen queue) == 0
     end
     
