@@ -65,7 +65,7 @@ helpers do
 
     flip = nil
     transpose = nil
-    info = `ffprobe #{path} 2>&1`
+    info = `avprobe #{path} 2>&1`
     match = info.match(/rotate\s+:\s(\d+)\s/)
     if match
       rotation = match[1]
@@ -80,7 +80,7 @@ helpers do
 
     args = []
 
-    args << "ffmpeg"
+    args << "avconv"
     args << "-y"
 
     args << "-i"
