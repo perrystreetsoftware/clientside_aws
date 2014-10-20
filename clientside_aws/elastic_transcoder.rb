@@ -112,6 +112,10 @@ helpers do
     args << "-profile:v"
     args << "baseline"
 
+    # Just for avconv, because it complains about aac
+    args << "-strict"
+    args << "experimental"
+    
     args << output + "-tmp"
 
     encode_command = args.join(" ")
