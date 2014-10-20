@@ -75,7 +75,7 @@ helpers do
 
   def downloadFile(bucket, obj_name)
     obj_key = "s3:bucket:#{bucket}:#{obj_name}"
-    return AWS_REDIS.hget obj_key, 'body'
+    return (AWS_REDIS.hget obj_key, 'body').force_encoding("UTF-8")
   end
     
 end 
