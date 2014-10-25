@@ -115,14 +115,6 @@ delete %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do
   status 200
 end
 
-
-# put %r{/s3(.localhost.amazonaws.com)?/(.+?)/?$} do
-#   # bucket creation
-#   bucket = params[:captures][1]
-#   AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
-#   status 200
-# end
-
 put %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do
   bucket = params[:captures][1]
   file_name = params[:captures][2]
@@ -152,6 +144,13 @@ put %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do
       AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "content-type", env['CONTENT_TYPE']
     end
   end
+  status 200
+end
+
+put %r{/s3(.*?\.amazonaws\.com)?/([^/]+?)/?$} do
+  # bucket creation
+  bucket = params[:captures][1]
+  AWS_REDIS.hset "s3:bucket:#{bucket}", "created_at", Time.now.to_i
   status 200
 end
 
