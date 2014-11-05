@@ -13,6 +13,7 @@ require 'base64'
 require 'rack'
 require 'rack/cors'
 require 'rack/protection'
+require 'httparty' if development?
 require 'aws-sdk'
 
 require 'clientside_aws/dynamodb'
