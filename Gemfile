@@ -1,4 +1,4 @@
 source 'https://rubygems.org'
 
-# Specify your gem's dependencies in clientside_aws.gemspec
+# See gem dependencies in clientside_aws.gemspec
 gemspec
