@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/local/bin/redis-server /etc/redis/redis.conf >> /var/log/redis.log 2>&1

@@ -1,0 +1,3 @@
+#!/bin/sh
+exec /usr/bin/ruby /opt/clientside_aws/index.rb -o 0.0.0.0
+
