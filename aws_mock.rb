@@ -229,3 +229,50 @@ module AWS # override for constructing POST requests for client
     end
   end
 end
+
+
+module AWS
+	# Mock SES and enable retrieval of last msg
+	class SimpleEmailService
+		@@last_msg = nil
+		def quotas
+			{:max_24_hour_send=>200, :max_send_rate=>100.0, :sent_last_24_hours=>22}
+		end
+		class SESMessage
+			
+			def initialize
+				@id = UUID.new.generate
+			end
+			def successful?
+				true
+			end	
+			def data
+				{ :message_id => @id }
+			end
+		end
+		def send_email msg
+			ses_message = SESMessage.new
+			to_adr = msg[:to]
+			from_adr = msg[:from]
+			to_adr = to_adr[/(?<=<).*(?=>)/]
+			from_adr = from_adr[/(?<=<).*(?=>)/]
+			fname = ses_message.data[:message_id]
+			fname.gsub!('/') { '-' }
+			log_msg("#{fname}.txt", "#{msg[:subject]}\n\n#{msg[:body_text]}") if msg[:body_text]
+			log_msg("#{fname}.html", msg[:body_html]) if msg[:body_html]
+			@@last_msg = msg
+			ses_message
+		end
+		def log_msg path, content
+			email_dir = "#{__dir__}/../log/email"
+			FileUtils.mkdir_p(email_dir) unless File.directory?(email_dir)
+			File.open("#{email_dir}/#{path}", 'w') { |file| file.write(content) } 
+		end
+		def self.last_msg
+			@@last_msg
+		end
+		def self.clear_msg
+			@@last_msg = nil
+		end
+	end
+end
