@@ -187,15 +187,10 @@ module AWS
                 response
 
               end
-
             end
-
           end
         end
-
       end
-
-
     end
   end
 end
@@ -230,49 +225,65 @@ module AWS # override for constructing POST requests for client
   end
 end
 
-
 module AWS
-	# Mock SES and enable retrieval of last msg
-	class SimpleEmailService
-		@@last_msg = nil
-		def quotas
-			{:max_24_hour_send=>200, :max_send_rate=>100.0, :sent_last_24_hours=>22}
-		end
-		class SESMessage
-			
-			def initialize
-				@id = UUID.new.generate
-			end
-			def successful?
-				true
-			end	
-			def data
-				{ :message_id => @id }
-			end
-		end
-		def send_email msg
-			ses_message = SESMessage.new
-			to_adr = msg[:to]
-			from_adr = msg[:from]
-			to_adr = to_adr[/(?<=<).*(?=>)/]
-			from_adr = from_adr[/(?<=<).*(?=>)/]
-			fname = ses_message.data[:message_id]
-			fname.gsub!('/') { '-' }
-			log_msg("#{fname}.txt", "#{msg[:subject]}\n\n#{msg[:body_text]}") if msg[:body_text]
-			log_msg("#{fname}.html", msg[:body_html]) if msg[:body_html]
-			@@last_msg = msg
-			ses_message
-		end
-		def log_msg path, content
-			email_dir = "#{__dir__}/../log/email"
-			FileUtils.mkdir_p(email_dir) unless File.directory?(email_dir)
-			File.open("#{email_dir}/#{path}", 'w') { |file| file.write(content) } 
-		end
-		def self.last_msg
-			@@last_msg
-		end
-		def self.clear_msg
-			@@last_msg = nil
-		end
-	end
+  # Mock SES and enable retrieval of last message sent
+  # We also save messages to message_directory, if set
+  class SimpleEmailService
+    @@message_directory = nil
+    @@sent_message = nil
+    @@sent_email = nil
+    def self.clear_sent
+      @@sent_email = nil
+      @@sent_message = nil
+    end
+    def self.message_directory= path
+      @@message_directory = path
+    end
+    def self.sent_email clear = nil
+      msg = @@sent_email
+      clear_sent if clear
+      msg
+    end
+    def self.sent_message clear = nil
+      msg = @@sent_message
+      clear_sent if clear
+      msg
+    end
+    def quotas
+      {:max_24_hour_send=>200, :max_send_rate=>100.0, :sent_last_24_hours=>22}
+    end
+    class SESMessage
+      def initialize
+        @id = UUID.new.generate
+      end
+      def successful?
+        true
+      end  
+      def data
+        { :message_id => @id }
+      end
+    end
+    def send_email msg
+      ses_message = SESMessage.new
+      to_adr = msg[:to]
+      from_adr = msg[:from]
+      to_adr = to_adr[/(?<=<).*(?=>)/]
+      from_adr = from_adr[/(?<=<).*(?=>)/]
+      fname = ses_message.data[:message_id]
+      log_msg("#{fname}.txt", "#{msg[:subject]}\n\n#{msg[:body_text]}") if msg[:body_text]
+      log_msg("#{fname}.html", msg[:body_html]) if msg[:body_html]
+      @@sent_email = msg
+      @@sent_message = ses_message
+      ses_message
+    end
+    private
+    def log_msg file_name, content
+      email_dir = @@message_directory
+      if email_dir
+        email_dir += '/' unless email_dir.end_with? '/'
+        FileUtils.mkdir_p(email_dir) unless File.directory?(email_dir)
+        File.open("#{email_dir}#{file_name}", 'w') { |file| file.write(content) } 
+      end
+    end
+  end
 end
