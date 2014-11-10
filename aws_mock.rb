@@ -232,21 +232,21 @@ module AWS
     @@message_directory = nil
     @@sent_message = nil
     @@sent_email = nil
-    def self.clear_sent
+    def self.mock_clear_sent
       @@sent_email = nil
       @@sent_message = nil
     end
     def self.message_directory= path
       @@message_directory = path
     end
-    def self.sent_email clear = nil
+    def self.mock_sent_email clear = nil
       msg = @@sent_email
-      clear_sent if clear
+      mock_clear_sent if clear
       msg
     end
-    def self.sent_message clear = nil
+    def self.mock_sent_message clear = nil
       msg = @@sent_message
-      clear_sent if clear
+      mock_clear_sent if clear
       msg
     end
     def quotas
