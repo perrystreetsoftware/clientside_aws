@@ -229,6 +229,18 @@ module AWS
   # Mock SES and enable retrieval of last message sent
   # We also save messages to message_directory, if set
   class SimpleEmailService
+    class SESMessage
+      def initialize
+        @id = UUID.new.generate
+      end
+      def successful?
+        true
+      end  
+      def data
+        { :message_id => @id }
+      end
+    end
+    
     @@message_directory = nil
     @@sent_message = nil
     @@sent_email = nil
@@ -251,17 +263,6 @@ module AWS
     end
     def quotas
       {:max_24_hour_send=>200, :max_send_rate=>100.0, :sent_last_24_hours=>22}
-    end
-    class SESMessage
-      def initialize
-        @id = UUID.new.generate
-      end
-      def successful?
-        true
-      end  
-      def data
-        { :message_id => @id }
-      end
     end
     def send_email msg
       ses_message = SESMessage.new
