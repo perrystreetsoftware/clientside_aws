@@ -26,7 +26,7 @@ RUN cd /opt/redis-2.8.17 ; ./configure ; make ; sudo make install
 RUN apt-get install -y libav-tools
 
 RUN mkdir /etc/service/redis-server
-ADD redis-server-run /etc/service/redis-server/run
+ADD docker/redis-server-run /etc/service/redis-server/run
 RUN chmod 755 /etc/service/redis-server/run
 
 # Add redis conf file
@@ -35,11 +35,12 @@ RUN cd /opt/redis-2.8.17 ; cat redis.conf | sed "s/dir \.\//dir \/mnt\/redis\//"
 
 # Now, fetch clientside aws
 RUN gem install bundler
-RUN cd /opt ; git clone https://github.com/perrystreetsoftware/clientside_aws.git
+RUN cd /opt
+COPY . /opt/clientside_aws/
 RUN cd /opt/clientside_aws ; bundle install
 
 RUN mkdir /etc/service/clientside-aws
-ADD clientside-aws-run /etc/service/clientside-aws/run
+ADD docker/clientside-aws-run /etc/service/clientside-aws/run
 RUN chmod 755 /etc/service/clientside-aws/run
 
 EXPOSE 4567

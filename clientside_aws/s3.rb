@@ -158,7 +158,7 @@ put %r{/s3(.*?\.amazonaws\.com)?/([^/]+?)/?$} do
   status 200
 end
 
-post %r{/s3(.*?\.amazonaws\.com)?/(.+?)/?} do
+post %r{/s3(.*?\.amazonaws\.com)?/([^/]+)/?} do
  # upload the file (chunking not implemented) to fake S3
  bucket = params[:captures][1]
  file_name = params[:key]
@@ -168,7 +168,7 @@ post %r{/s3(.*?\.amazonaws\.com)?/(.+?)/?} do
     if ENV['RACK_ENV'] == 'development'
       body_send = params[:file][:tempfile].read
     else 
-      body_send = params[:body]
+      body_send = params[:file]
     end
    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "body", body_send
     if env.has_key?('content-type')
