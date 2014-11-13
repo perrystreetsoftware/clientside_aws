@@ -207,19 +207,12 @@ module AWS # override for constructing POST requests for client
     end
     
     class PresignedPost
-      def secure?
-        false
-      end
       def url
-        request = Request.new
-        request.bucket = bucket.name
         parts = config.s3_endpoint.split(':')
-        request.host = parts.shift
+        host = parts.shift
         parts = parts.join(':').split('/')
-        request.port = parts.shift.to_i        
-        request.key = parts.join('/')
-        uri_class = secure? ? URI::HTTPS : URI::HTTP
-        uri_class.build(:host => request.host, :path => request.path, :query => request.querystring, :port => request.port)
+        port = parts.shift.to_i
+        URI::HTTP.build(:host => host, :path => "/s3/#{bucket.name}", :port => port)
       end
     end
   end
