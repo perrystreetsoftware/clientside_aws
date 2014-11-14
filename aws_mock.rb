@@ -207,12 +207,22 @@ module AWS # override for constructing POST requests for client
     end
     
     class PresignedPost
+      @@host = nil
+      @@port = nil
+      def self.mock_host= host
+        @@host = host
+      end
+      def self.mock_port= port
+        @@port = port
+      end
+      def mock_host
+        @@host || config.s3_endpoint.split(':').first
+      end
+      def mock_port
+      	@@port || config.s3_endpoint.split(':')[1].split('/').first.to_i     	
+      end
       def url
-        parts = config.s3_endpoint.split(':')
-        host = parts.shift
-        parts = parts.join(':').split('/')
-        port = parts.shift.to_i
-        URI::HTTP.build(:host => host, :path => "/s3/#{bucket.name}", :port => port)
+        URI::HTTP.build(:host => mock_host, :path => "/s3/#{bucket.name}", :port => mock_port)
       end
     end
   end
