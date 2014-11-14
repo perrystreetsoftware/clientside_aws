@@ -37,4 +37,11 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'sinatra', '1.4.2'
   spec.add_dependency 'uuid', '2.3.1'
   spec.add_dependency 'uuidtools', '2.1.4'
+  spec.add_dependency 'backports', '3.6.3'
+  spec.add_dependency 'rack-protection', '1.5.3'
+  spec.add_dependency 'sinatra-advanced-routes', '0.5.3'
+  spec.add_dependency 'multi_json', '1.10.1'
+  spec.add_dependency 'multi_xml', '0.5.3'
+  spec.add_dependency 'tilt', '1.3.6'
+  spec.add_dependency 'systemu', '2.6.4'
 end
