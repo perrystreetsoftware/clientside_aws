@@ -154,7 +154,7 @@ describe 'Profiles Spec' do
 
     # Test query
     results = dynamo_db.query({:table_name => 'cd_table', :index_name => 'cd_gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "2"}
@@ -175,7 +175,7 @@ describe 'Profiles Spec' do
     
     # Test query
     results = dynamo_db.query({:table_name => 'cd_table', :index_name => 'cd_gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "2"}
@@ -258,7 +258,7 @@ describe 'Profiles Spec' do
 
     # Try the global secondary index
     results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "2"}
@@ -274,7 +274,7 @@ describe 'Profiles Spec' do
 
     # Try the local secondary index
     results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'ls_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "1"}
@@ -289,7 +289,7 @@ describe 'Profiles Spec' do
     results[:member].length.should == 1
     
     results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'ls_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "1"}
@@ -307,7 +307,7 @@ describe 'Profiles Spec' do
     dynamo_db.put_item(:table_name => "visited_by", :item => {'profile_id' => {'n' => '1'}, 'visitor_id' => {'n' => '4'}, 'timestamp' => {'n' => Time.now.utc.to_i.to_s}})
     
     results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'ls_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "1"}
@@ -328,7 +328,7 @@ describe 'Profiles Spec' do
     end
 
     results = dynamo_db.query({:table_name => 'visited_by', :index_name => 'gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "2"}
@@ -348,7 +348,7 @@ describe 'Profiles Spec' do
     results = dynamo_db.query({:table_name => 'visited_by', 
       :scan_index_forward => false, 
       :index_name => 'gs_index', :select => 'ALL_PROJECTED_ATTRIBUTES', :key_conditions => {
-           'hk' => {
+           'profile_id' => {
              :comparison_operator => 'EQ',
             :attribute_value_list => [
                {'n' => "2"}
