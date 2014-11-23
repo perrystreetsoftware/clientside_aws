@@ -42,5 +42,26 @@ describe 'Profiles Spec' do
     object.content_type.should == "application/json"
     
     object.etag.should == Digest::MD5.hexdigest(json_value)
-  end  
+  end
+  
+  it "should support rename_to" do
+    s3 = AWS::S3.new(
+      :access_key_id => "...",
+      :secret_access_key => "...")   
+    s3.buckets.create('test2')
+    bucket = s3.buckets[:test]
+    bucket.exists?
+    object = bucket.objects['test.file']
+
+    initial_hash = Digest::MD5.hexdigest(File.read("#{File.dirname(__FILE__)}/../public/images/spacer.gif"))
+    object.write(:file => "#{File.dirname(__FILE__)}/../public/images/spacer.gif")
+    Digest::MD5.hexdigest(object.read()).should == initial_hash
+    object.exists?.should == true
+    
+    object.rename_to("test2.file")
+    
+    renamed_object = bucket.objects['test2.file']
+    renamed_object.exists?.should be_true
+    
+  end
 end
