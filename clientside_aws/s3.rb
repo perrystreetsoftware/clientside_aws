@@ -133,7 +133,11 @@ put %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do
     # Handle the copy_XXX case
     if ((body_send.nil? or body_send.length == 0) and (env.has_key?("HTTP_X_AMZ_COPY_SOURCE") or env.has_key?("x-amz-copy-source")))
       copy_source = env["HTTP_X_AMZ_COPY_SOURCE"] || env["x-amz-copy-source"]
-      (srcbucket, srcfile) = copy_source.split("/")
+      if copy_source.start_with?("/")
+        (extra, srcbucket, srcfile) = copy_source.split("/")
+      else
+        (srcbucket, srcfile) = copy_source.split("/")
+      end
       body_send = downloadFile(srcbucket, srcfile)
     end
     
