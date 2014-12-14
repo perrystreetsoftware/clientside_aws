@@ -153,11 +153,7 @@ end
 post %r{/elastic_transcoder\.(\w+?)\.amazonaws\.com/2012-09-25/jobs} do
   args = JSON::parse(env['rack.input'].read)
     
-  pipeline = JSON.parse(AWS_REDIS.get("pipeline"))
-  bucket = pipeline['InputBucket']
   input_obj_name = args['Input']['Key']
-  
-  bucket = pipeline['OutputBucket']
   output_obj_name = args['Output']['Key']
   
   encode_video(input_obj_name, output_obj_name)
