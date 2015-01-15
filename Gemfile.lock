@@ -15,7 +15,7 @@ PATH
       rack (= 1.5.2)
       rack-cors (= 0.2.9)
       rack-protection (= 1.5.3)
-      redis (= 3.0.1)
+      redis (= 3.2.0)
       sinatra (= 1.4.2)
       sinatra-advanced-routes (= 0.5.3)
       sinatra-reloader (= 0.5.0)
@@ -55,7 +55,7 @@ GEM
       rack
     rack-test (0.5.7)
       rack (>= 1.0)
-    redis (3.0.1)
+    redis (3.2.0)
     rspec (2.14.1)
       rspec-core (~> 2.14.0)
       rspec-expectations (~> 2.14.0)

@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'nokogiri', '1.6.1'
   spec.add_dependency 'rack-cors', '0.2.9'
   spec.add_dependency 'rack', '1.5.2'
-  spec.add_dependency 'redis', '3.0.1'
+  spec.add_dependency 'redis', '3.2.0'
   spec.add_dependency 'sinatra-reloader', '0.5.0'
   spec.add_dependency 'sinatra-sugar', '0.5.1'
   spec.add_dependency 'sinatra', '1.4.2'
