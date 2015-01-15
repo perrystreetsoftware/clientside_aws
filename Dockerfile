@@ -22,6 +22,9 @@ RUN cd /opt ; wget "http://download.redis.io/releases/redis-2.8.17.tar.gz"
 RUN cd /opt ; gunzip redis-2.8.17.tar.gz ; tar -xvf redis-2.8.17.tar
 RUN cd /opt/redis-2.8.17 ; ./configure ; make ; sudo make install
 
+# Install for testing ffmpeg stuff
+RUN apt-get install -y libav-tools
+
 RUN mkdir /etc/service/redis-server
 ADD docker/redis-server-run /etc/service/redis-server/run
 RUN chmod 755 /etc/service/redis-server/run
@@ -29,9 +32,6 @@ RUN chmod 755 /etc/service/redis-server/run
 # Add redis conf file
 RUN mkdir /etc/redis
 RUN cd /opt/redis-2.8.17 ; cat redis.conf | sed "s/dir \.\//dir \/mnt\/redis\//" > /etc/redis/redis.conf
-
-# Install for testing ffmpeg stuff
-RUN apt-get install -y libav-tools
 
 # Now, fetch clientside aws
 RUN gem install bundler
