@@ -146,6 +146,24 @@ helpers do
     
     record_value = nil
     record_id = get_record_id(args)
+
+    # No record, probably doing an add
+    if record_id.nil?
+
+      # Figure out the range key
+      rangekey_json = AWS_REDIS.get "tables.#{args['TableName']}.rangekey"
+      rangekey = JSON.parse(rangekey_json) if rangekey_json
+
+      # Add the range key and give a default value of zero
+      attribute_name = rangekey['AttributeName']
+      attribute_type = rangekey['AttributeType']
+      item_key = args["Key"].clone
+      item_key[attribute_name] = {"#{attribute_type}" => 0}
+      put_item({ 'TableName' => args['TableName'], 'Item' => item_key })
+
+      record_id = get_record_id(args)
+    end
+    
     if record_id
       record_value = JSON.parse(AWS_REDIS.get "tables.#{args['TableName']}.#{record_id}")
       args["AttributeUpdates"].each do |key,update|
@@ -283,7 +301,9 @@ helpers do
         hashkey_value = BigDecimal(args["Key"][hashkey["AttributeName"]]["N"])
       end
 
-      if args["Key"][rangekey["AttributeName"]].has_key?("S")
+      if args["Key"][rangekey["AttributeName"]].nil?
+        rangekey_value = nil
+      elsif args["Key"][rangekey["AttributeName"]].has_key?("S")
         rangekey_value = args["Key"][rangekey["AttributeName"]]["S"]
       else
         rangekey_value = BigDecimal(args["Key"][rangekey["AttributeName"]]["N"])

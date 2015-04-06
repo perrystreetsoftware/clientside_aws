@@ -366,4 +366,34 @@ describe 'Profiles Spec' do
     
   end
   
+  it "should handle update item" do
+    dynamo_db = AWS::DynamoDB::Client.new(
+      :api_version => '2012-08-10',
+      :access_key_id => "...",
+      :secret_access_key => "...")
+
+    test_table = dynamo_db.create_table(
+      :table_name => "visitor_counts",
+      :provisioned_throughput => {:read_capacity_units => 1, :write_capacity_units => 1},
+      :attribute_definitions => [
+        {:attribute_name => 'profile_id', :attribute_type => "N"}, 
+        {:attribute_name => 'count', :attribute_type => "N"}],
+      :key_schema => [
+        {:attribute_name => "profile_id", :key_type => "HASH"},
+        {:attribute_name => "count", :key_type => "RANGE"}],
+      :local_secondary_indexes => [{
+        :index_name => "ls_index",
+        :key_schema => [
+          {:attribute_name => "profile_id", :key_type => "HASH"},
+          {:attribute_name => "count", :key_type => "RANGE"}
+          ],
+        :projection => {:projection_type => "ALL"}
+        }])
+
+    dynamo_db.update_item(:table_name => 'visitor_counts', 
+          :key => {'profile_id' => {'n' => 1.to_s}},
+          :attribute_updates => {
+            'count' => {:action => 'ADD', :value => {'n' => 1.to_s}}
+          })
+  end
 end
