@@ -415,12 +415,16 @@ helpers do
           }.sort{|a,b| 
             convert_rangekey_value(a.split("/").last, rangekey_type) <=> convert_rangekey_value(b.split("/").last, rangekey_type)
           }
-      elsif rangekey['ComparisonOperator'] == "LE"
+      elsif rangekey['ComparisonOperator'] == "LE" || rangekey['ComparisonOperator'] == "LT"
         rangekey_value = get_rangekey_value(rangekey["AttributeValueList"].first)
         rangekey_type = rangekey["AttributeValueList"].first.keys.first # "N" or "S"
         
         valid_rangekeys = rangekeys.select{|rk| 
-            (convert_rangekey_value(rk.split("/").last, rangekey_type) <=> rangekey_value) <= 0
+            if rangekey['ComparisonOperator'] == "LE"
+              (convert_rangekey_value(rk.split("/").last, rangekey_type) <=> rangekey_value) <= 0
+            else
+              (convert_rangekey_value(rk.split("/").last, rangekey_type) <=> rangekey_value) < 0
+            end
           }.sort{|a,b| 
             convert_rangekey_value(a.split("/").last, rangekey_type) <=> convert_rangekey_value(b.split("/").last, rangekey_type)
           }
