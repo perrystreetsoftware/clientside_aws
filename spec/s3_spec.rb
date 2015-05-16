@@ -13,7 +13,7 @@ describe 'Profiles Spec' do
   
   it "says hello" do
     get '/'
-    last_response.should be_ok
+    expect(last_response.ok?).to be true
   end
   
   it "should post to S3 okay" do
@@ -27,41 +27,58 @@ describe 'Profiles Spec' do
 
     initial_hash = Digest::MD5.hexdigest(File.read("#{File.dirname(__FILE__)}/../public/images/spacer.gif"))
     object.write(:file => "#{File.dirname(__FILE__)}/../public/images/spacer.gif")
-    Digest::MD5.hexdigest(object.read()).should == initial_hash
-    object.exists?.should == true
+    expect(Digest::MD5.hexdigest(object.read())).to eq initial_hash
+    expect(object.exists?).to be true
 
-    bucket.objects['asdfdsfasdf'].exists?.should == false
+    expect(bucket.objects['asdfdsfasdf'].exists?).to be false
 
     object.delete()
-    object.exists?.should == false
+    expect(object.exists?).to be false
     
     json_value = {:foo => "bar"}.to_json
     object = bucket.objects['test.json']
     object.write(json_value, :content_type => "application/json")
-    object.read().should == json_value
-    object.content_type.should == "application/json"
-    
-    object.etag.should == Digest::MD5.hexdigest(json_value)
+    expect(object.read()).to eq json_value
+    expect(object.content_type).to eq "application/json"
+    expect(object.etag).to eq Digest::MD5.hexdigest(json_value)
   end
   
+  it "should support subpaths" do
+    s3 = AWS::S3.new(
+      :access_key_id => "...",
+      :secret_access_key => "...")
+    s3.buckets.create('test')
+    bucket = s3.buckets[:test]
+    expect(bucket.exists?).to be true
+    object = bucket.objects['foo/bar/test.file']
+
+    object.write(:file => "#{File.dirname(__FILE__)}/../public/images/spacer.gif")
+    expect(object.exists?).to be true
+    
+    get '/s3/test/foo/bar/test.file'
+    expect(last_response.ok?).to be true
+    expect(last_response.status).to eq 200
+
+  end
+
   it "should support rename_to" do
     s3 = AWS::S3.new(
       :access_key_id => "...",
       :secret_access_key => "...")   
-    s3.buckets.create('test2')
+    s3.buckets.create('test1')
     bucket = s3.buckets[:test]
-    bucket.exists?
+    expect(bucket.exists?).to be true
     object = bucket.objects['test.file']
 
     initial_hash = Digest::MD5.hexdigest(File.read("#{File.dirname(__FILE__)}/../public/images/spacer.gif"))
     object.write(:file => "#{File.dirname(__FILE__)}/../public/images/spacer.gif")
-    Digest::MD5.hexdigest(object.read()).should == initial_hash
-    object.exists?.should == true
+    expect(Digest::MD5.hexdigest(object.read())).to eq initial_hash
+    expect(object.exists?).to be true
     
     object.rename_to("test2.file")
     
     renamed_object = bucket.objects['test2.file']
-    renamed_object.exists?.should be_true
+    expect(renamed_object.exists?).to be true
     
   end
 end
