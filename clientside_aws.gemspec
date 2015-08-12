@@ -44,4 +44,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'multi_xml', '0.5.3'
   spec.add_dependency 'tilt', '1.3.6'
   spec.add_dependency 'systemu', '2.6.4'
+  spec.add_dependency 'thin', '1.6.3'
 end
