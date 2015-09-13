@@ -7,6 +7,7 @@ AWS::Core::Configuration.module_eval do
   add_service 'ElasticTranscoder', 'elastic_transcoder', "#{ENV['AWS_REGION']}:#{port}/elastic_transcoder"
   add_service 'SimpleEmailService', 'simple_email_service', "#{ENV['AWS_REGION']}:#{port}/ses"
   add_service 'SNS', 'sns', "#{ENV['AWS_REGION']}:#{port}/sns"
+  add_service 'Kinesis', 'kinesis', "#{ENV['AWS_REGION']}:#{port}/kinesis"
 
   add_option :sqs_verify_checksums, false, :boolean => true
   add_option :override_port, port

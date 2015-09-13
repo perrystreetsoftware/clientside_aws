@@ -20,6 +20,7 @@ require 'clientside_aws/s3'
 require 'clientside_aws/ses'
 require 'clientside_aws/elastic_transcoder'
 require 'clientside_aws/sns'
+require 'clientside_aws/kinesis'
 
 configure :test do
   puts "invoking test"
