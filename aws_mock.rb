@@ -226,6 +226,16 @@ module AWS # override for constructing POST requests for client
         URI::HTTP.build(:host => mock_host, :path => "/s3/#{bucket.name}", :port => mock_port)
       end
     end
+
+    class S3Object
+      def presign_v4(method, options)
+        if method == :read || method == :get
+          "http://#{client.endpoint}/#{bucket.name}/#{key}"
+        else
+          nil
+        end
+      end
+    end
   end
 end
 
