@@ -15,7 +15,7 @@ AWS::Core::Configuration.module_eval do
 end
 
 module AWS
-  module Core   
+  module Core
     class Client
       if ENV['RACK_ENV'] == 'test'
         require 'rack/test'
@@ -23,12 +23,12 @@ module AWS
       else
         require 'httparty'
       end
-      
+
       def app
         Sinatra::Application
       end
-      
-      
+
+
       private
       def make_sync_request response
 
@@ -37,21 +37,21 @@ module AWS
           response.http_request.headers.each do |k,v|
             headers[k] = v
           end
-        
+
           if not headers['content-length'].nil?
             headers['content-length'] = headers['content-length'].to_s
-          else 
+          else
             headers['content-length'] = "0"
           end
-        
+
           params = Hash.new
           response.http_request.params.each do |p|
             params[p.name] = p.value
           end
-        
+
           path = response.http_request.path
           body = response.http_request.body
-        
+
           mock_response = nil
           if response.http_request.http_method == "POST"
             if ENV['RACK_ENV'] == 'test'
@@ -62,18 +62,18 @@ module AWS
               host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
               mock_response = HTTParty::post("http://#{host_and_port}#{path}", :headers => headers, :body => body)
             end
-          elsif response.http_request.http_method == "GET"   
+          elsif response.http_request.http_method == "GET"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
               get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
             else
               host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
-              mock_response = HTTParty::get("http://#{host_and_port}#{path}", :headers => headers, :query => params)    
+              mock_response = HTTParty::get("http://#{host_and_port}#{path}", :headers => headers, :query => params)
             end
-          elsif response.http_request.http_method == "HEAD"  
+          elsif response.http_request.http_method == "HEAD"
             #NOTE: a head request via AWS breaks the specifications when there is an error
-            #      We need to send a GET request instead of head in case there is an XML 
+            #      We need to send a GET request instead of head in case there is an XML
             #      body attached to the response
             params['head_request'] = 1
             if ENV['RACK_ENV'] == 'test'
@@ -83,7 +83,7 @@ module AWS
             else
               host_and_port = response.http_request.host.match(config.override_port).nil? ? "#{response.http_request.host}:#{config.override_port}" : response.http_request.host
               mock_response = HTTParty::get("http://#{host_and_port}#{path}", :headers => headers, :query => params)
-            end  
+            end
           elsif response.http_request.http_method == "DELETE"
             if ENV['RACK_ENV'] == 'test'
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
@@ -104,7 +104,7 @@ module AWS
               mock_response = HTTParty::put("http://#{host_and_port}#{path}", :query => params, :headers => headers, :body=> body)
             end
           end
-        
+
           response.http_response = http_response =
             Http::Response.new
           if not mock_response.body.nil?
@@ -132,7 +132,7 @@ module AWS
           end
         end
       end
-      
+
       def client_request name, options, &read_block
         return_or_raise(options) do
           log_client_request(options) do
@@ -206,7 +206,7 @@ module AWS # override for constructing POST requests for client
         end
       end
     end
-    
+
     class PresignedPost
       @@host = nil
       @@port = nil
@@ -220,7 +220,7 @@ module AWS # override for constructing POST requests for client
         @@host || config.s3_endpoint.split(':').first
       end
       def mock_port
-      	@@port || config.s3_endpoint.split(':')[1].split('/').first.to_i     	
+      	@@port || config.s3_endpoint.split(':')[1].split('/').first.to_i
       end
       def url
         URI::HTTP.build(:host => mock_host, :path => "/s3/#{bucket.name}", :port => mock_port)
@@ -249,12 +249,12 @@ module AWS
       end
       def successful?
         true
-      end  
+      end
       def data
         { :message_id => @id }
       end
     end
-    
+
     @@message_directory = nil
     @@sent_message = nil
     @@sent_email = nil
@@ -297,7 +297,25 @@ module AWS
       if email_dir
         email_dir += '/' unless email_dir.end_with? '/'
         FileUtils.mkdir_p(email_dir) unless File.directory?(email_dir)
-        File.open("#{email_dir}#{file_name}", 'w') { |file| file.write(content) } 
+        File.open("#{email_dir}#{file_name}", 'w') { |file| file.write(content) }
+      end
+    end
+  end
+end
+
+module AWS
+  class SNS
+    class Client < Core::QueryClient
+      # Monkeypatch to save the last sent message
+      class V20100331
+        attr_reader :last_msg
+
+        def publish(target_arn:,
+                    message_structure:,
+                    message:,
+                    message_attributes: nil)
+          @last_msg = message
+        end
       end
     end
   end
