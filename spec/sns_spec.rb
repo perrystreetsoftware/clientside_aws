@@ -10,18 +10,36 @@ describe 'Profiles Spec' do
     Sinatra::Application
   end
   # adding in for ability to access via other 'examples'
-  
-  it "says hello" do
+
+  it 'says hello' do
     get '/'
-    last_response.should be_ok
+    expect(last_response).to be_ok
   end
-  
-  it "should post to SNS okay" do
+
+  it 'should post to SNS okay' do
     sns = AWS::SNS.new(
-      :access_key_id => "...",
-      :secret_access_key => "...")   
-      
-    response = sns.client.create_platform_endpoint(:platform_application_arn => "SNS_APPLICATION_ARN_IOS", :token => "token")
-    response.data[:endpoint_arn].should_not be_nil
-  end  
+      access_key_id: '...',
+      secret_access_key: '...')
+
+    response = sns.client.create_platform_endpoint(
+      platform_application_arn: \
+        'arn:aws:sns:us-east-1:999999999999:app/APNS/MYAPP',
+      token: 'token')
+    expect(response.data[:endpoint_arn]).not_to be_nil
+    expect(response.data[:endpoint_arn] =~ %r{endpoint/APNS}).not_to be nil
+
+    response = sns.client.create_platform_endpoint(
+      platform_application_arn: \
+        'arn:aws:sns:us-east-1:999999999999:app/WNS/MYAPP',
+      token: 'token')
+    expect(response.data[:endpoint_arn]).not_to be_nil
+    expect(response.data[:endpoint_arn] =~ %r{endpoint/WNS}).not_to be nil
+
+    response = sns.client.create_platform_endpoint(
+      platform_application_arn: \
+        'arn:aws:sns:us-east-1:999999999999:app/GCM/MYAPP',
+      token: 'token')
+    expect(response.data[:endpoint_arn]).not_to be_nil
+    expect(response.data[:endpoint_arn] =~ %r{endpoint/GCM}).not_to be nil
+  end
 end
