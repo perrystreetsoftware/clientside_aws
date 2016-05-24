@@ -1,6 +1,6 @@
 AWS::Core::Configuration.module_eval do
   ENV['AWS_REGION'] = ENV['RACK_ENV'] == 'test' ? "localhost" : "aws"
-  port = ENV['RACK_ENV'] == 'test' ? "4567" : ENV['AWS_PORT_4567_TCP_PORT']
+  port = '4567'
   add_service "DynamoDB", "dynamo_db", "#{ENV['AWS_REGION']}:#{port}/dynamodb"
   add_service 'SQS', 'sqs', "#{ENV['AWS_REGION']}:#{port}/sqs"
   add_service 'S3', 's3', "#{ENV['AWS_REGION']}:#{port}/s3"
