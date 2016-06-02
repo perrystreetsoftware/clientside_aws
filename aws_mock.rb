@@ -1,6 +1,10 @@
+
+require_relative 'clientside_aws/core'
+require 'uuid'
+
 AWS::Core::Configuration.module_eval do
-  ENV['AWS_REGION'] = ENV['RACK_ENV'] == 'test' ? "localhost" : "aws"
-  port = '4567'
+  ENV['AWS_REGION'] = AWS::Core.testing ? "localhost" : "aws"
+  port = AWS::Core.testing ? '4567' : (ENV['AWS_PORT_4567_TCP_PORT'] || '4567')
   add_service "DynamoDB", "dynamo_db", "#{ENV['AWS_REGION']}:#{port}/dynamodb"
   add_service 'SQS', 'sqs', "#{ENV['AWS_REGION']}:#{port}/sqs"
   add_service 'S3', 's3', "#{ENV['AWS_REGION']}:#{port}/s3"
@@ -17,10 +21,12 @@ end
 module AWS
   module Core
     class Client
-      if ENV['RACK_ENV'] == 'test'
+      if AWS::Core.testing
+        # puts 'AWS: requiring rack test'
         require 'rack/test'
         include Rack::Test::Methods
       else
+        # puts 'AWS: requiring httparty'
         require 'httparty'
       end
 
@@ -54,7 +60,7 @@ module AWS
 
           mock_response = nil
           if response.http_request.http_method == "POST"
-            if ENV['RACK_ENV'] == 'test'
+            if AWS::Core.testing
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
               post new_path, body, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
@@ -63,7 +69,7 @@ module AWS
               mock_response = HTTParty::post("http://#{host_and_port}#{path}", :headers => headers, :body => body)
             end
           elsif response.http_request.http_method == "GET"
-            if ENV['RACK_ENV'] == 'test'
+            if AWS::Core.testing
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
               get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
@@ -76,7 +82,7 @@ module AWS
             #      We need to send a GET request instead of head in case there is an XML
             #      body attached to the response
             params['head_request'] = 1
-            if ENV['RACK_ENV'] == 'test'
+            if AWS::Core.testing
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
               get new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
@@ -85,7 +91,7 @@ module AWS
               mock_response = HTTParty::get("http://#{host_and_port}#{path}", :headers => headers, :query => params)
             end
           elsif response.http_request.http_method == "DELETE"
-            if ENV['RACK_ENV'] == 'test'
+            if AWS::Core.testing
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
               delete new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)
               mock_response = last_response
@@ -94,7 +100,7 @@ module AWS
               mock_response = HTTParty::delete("http://#{host_and_port}#{path}", :headers => headers, :query => params)
             end
           elsif response.http_request.http_method == "PUT"
-            if ENV['RACK_ENV'] == 'test'
+            if AWS::Core.testing
               new_path = URI.parse("http://#{response.http_request.host}#{path}").path
               params[:body] = body
               put new_path, params, headers.merge('SERVER_NAME' => response.http_request.host)

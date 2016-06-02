@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.9.15
+FROM phusion/baseimage:0.9.17
 MAINTAINER Eric Silverberg
 
 # Set correct environment variables.
