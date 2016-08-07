@@ -118,12 +118,23 @@ helpers do
     xml.target!
   end
 
-  def send_message()
+  def send_message_batch
     queue = params[:QueueUrl]
+    idx = 1 
+    loop do
+       break unless params["SendMessageBatchRequestEntry.#{idx}.MessageBody"]
+       send_message(queue, params["SendMessageBatchRequestEntry.#{idx}.MessageBody"])
+       idx += 1
+    end
+
+    halt 200
+  end
+
+  def send_message(queue, message_body)
     message_id = UUID.new.generate
     request_id = UUID.new.generate
     msg = {
-      MessageBody: params[:MessageBody],
+      MessageBody: message_body,
       MessageId: message_id,
       RequestId: request_id,
       Timestamp: Time.now.to_i,
@@ -135,7 +146,7 @@ helpers do
     xml.instruct!
     xml.SendMessageResponse do
       xml.SendMessageResult do
-        xml.tag!(:MD5OfMessageBody, Digest::MD5.hexdigest(params[:MessageBody]))
+        xml.tag!(:MD5OfMessageBody, Digest::MD5.hexdigest(message_body))
         xml.tag!(:MessageId, message_id)
       end
       xml.ResponseMetadata do
@@ -171,7 +182,9 @@ end
 post %r{/sqs(\.(\w+?)\.amazonaws\.com)?/(.*)} do
   case params[:Action]
   when "SendMessage"
-    send_message()
+    send_message(params[:QueueUrl], params[:MessageBody])
+  when "SendMessageBatch"
+    send_message_batch()
   when "ReceiveMessage"
     receive_message()
   when "DeleteMessage"
