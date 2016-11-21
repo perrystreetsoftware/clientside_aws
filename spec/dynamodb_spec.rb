@@ -396,4 +396,27 @@ describe 'Profiles Spec' do
             'count' => {:action => 'ADD', :value => {'n' => 1.to_s}}
           })
   end
+
+  it 'should handle get item when no values' do
+    dynamo_db = AWS::DynamoDB::Client.new(
+      api_version: '2012-08-10',
+      access_key_id: '...',
+      secret_access_key: '...')
+
+    dynamo_db.create_table(
+      table_name: 'secrets',
+      provisioned_throughput: \
+        { read_capacity_units: 1, write_capacity_units: 1 },
+      attribute_definitions: [
+        { attribute_name: 'name', attribute_type: 'S' }],
+      key_schema: [
+        { attribute_name: 'name', key_type: 'HASH' }]
+    )
+    value = dynamo_db.get_item(
+      table_name: 'secrets',
+      key: { 'name' => { 's' => 'hi'.to_s } }
+    )
+
+    expect(value[:item]).to be nil
+  end
 end

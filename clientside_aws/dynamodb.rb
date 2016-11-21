@@ -301,12 +301,14 @@ helpers do
         hashkey_value = BigDecimal(args["Key"][hashkey["AttributeName"]]["N"])
       end
 
-      if args["Key"][rangekey["AttributeName"]].nil?
-        rangekey_value = nil
-      elsif args["Key"][rangekey["AttributeName"]].has_key?("S")
-        rangekey_value = args["Key"][rangekey["AttributeName"]]["S"]
-      else
-        rangekey_value = BigDecimal(args["Key"][rangekey["AttributeName"]]["N"])
+      if rangekey
+        if args["Key"][rangekey["AttributeName"]].nil?
+          rangekey_value = nil
+        elsif args["Key"][rangekey["AttributeName"]].has_key?("S")
+          rangekey_value = args["Key"][rangekey["AttributeName"]]["S"]
+        else
+          rangekey_value = BigDecimal(args["Key"][rangekey["AttributeName"]]["N"])
+        end
       end
     else
       halt 500 unless args['Key'].has_key?("HashKeyElement")
