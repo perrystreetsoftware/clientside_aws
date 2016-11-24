@@ -292,6 +292,8 @@ helpers do
       hashkey_json = AWS_REDIS.get "tables.#{args['TableName']}.hashkey"
       rangekey_json = AWS_REDIS.get "tables.#{args['TableName']}.rangekey"
 
+      return nil unless hashkey_json
+
       hashkey = JSON.parse(hashkey_json) if hashkey_json
       rangekey = JSON.parse(rangekey_json) if rangekey_json
 
