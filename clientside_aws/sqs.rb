@@ -120,7 +120,7 @@ helpers do
 
   def send_message_batch
     queue = params[:QueueUrl]
-    idx = 1 
+    idx = 1
     loop do
        break unless params["SendMessageBatchRequestEntry.#{idx}.MessageBody"]
        send_message(queue, params["SendMessageBatchRequestEntry.#{idx}.MessageBody"])
@@ -160,7 +160,7 @@ helpers do
 
   def __check_pending
     AWS_REDIS.keys('sqs:pending:*').each do |key|
-      json = AWS_REDIS.get(key).force_encoding("UTF-8")
+      json = AWS_REDIS.get(key).to_s.force_encoding("UTF-8")
       begin
         payload = JSON.parse(json)
         time_received = Time.parse(payload['received'])
