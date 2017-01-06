@@ -29,17 +29,18 @@ helpers do
 
     xml = Builder::XmlMarkup.new()
     xml.instruct!
-    xml.ListAllMyBucketsResult(:xmlns => "http://doc.s3.amazonaws.com/2006-03-01") do
+    xml.ListBucketResult(:xmlns => "http://doc.s3.amazonaws.com/2006-03-01") do
+      objects = AWS_REDIS.keys "s3:bucket:#{bucket}:*"
+
       xml.tag!(:Name, bucket)
+      xml.tag!(:KeyCount, objects.length)
       xml.tag!(:Prefix, nil)
       xml.tag!(:Marker, nil)
       xml.tag!(:MaxKeys, 1000)
       xml.tag!(:IsTruncated, false)
 
-      objects = AWS_REDIS.keys "s3:bucket:#{bucket}:*"
       objects.each do |object|
         xml.Contents do
-
           key = AWS_REDIS.hget object,  "key"
           last_modified = AWS_REDIS.hget object, "last_modified"
           etag = AWS_REDIS.hget object, "etag"
@@ -57,6 +58,7 @@ helpers do
         end
       end
     end
+
     content_type :xml
     xml.target!
   end
@@ -99,7 +101,6 @@ end
 get %r{^/s3(.*?\.amazonaws\.com)?/(.+?)/?$} do
   bucket = params[:captures][1]
   list_objects(bucket)
-  status 200
 end
 
 get %r{^/s3(.*?\.amazonaws\.com)?/$} do
@@ -134,7 +135,12 @@ put %r{/s3(.*?\.amazonaws\.com)?/(.+?)/(.+)} do
       body_send = downloadFile(srcbucket, srcfile)
     end
 
-    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "body", body_send
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'body', body_send
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'key', file_name
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'last_modified', Time.now.to_i
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'size', body_send.length
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'etag', Digest::MD5.hexdigest(body_send)
+
     if env.has_key?('content-type')
       AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", "content-type", env['content-type']
     elsif env.has_key?('CONTENT_TYPE')
