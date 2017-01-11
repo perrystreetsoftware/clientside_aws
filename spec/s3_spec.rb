@@ -95,4 +95,22 @@ describe 'Profiles Spec' do
 
     expect(bucket.objects.count).to eq 1
   end
+
+  it 'should respect prefix' do
+    s3 = AWS::S3.new(
+      :access_key_id => "...",
+      :secret_access_key => "...")
+    bucket_name = UUID.new.generate
+    s3.buckets.create(bucket_name)
+    bucket = s3.buckets[bucket_name]
+    expect(bucket.exists?).to be true
+    object = bucket.objects['apple.gif']
+    object.write(:file => "#{File.dirname(__FILE__)}/../public/images/spacer.gif")
+
+    object = bucket.objects['banana.gif']
+    object.write(:file => "#{File.dirname(__FILE__)}/../public/images/spacer.gif")
+
+    expect(bucket.objects.with_prefix('apple').count).to eq 1
+  end
+
 end

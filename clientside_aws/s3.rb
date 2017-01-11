@@ -40,6 +40,10 @@ helpers do
       xml.tag!(:IsTruncated, false)
 
       objects.each do |object|
+        prefix = params.key?('prefix') ? params['prefix'] : nil
+        next unless prefix.nil? || \
+                    object.start_with?("s3:bucket:#{bucket}:#{prefix}")
+
         xml.Contents do
           key = AWS_REDIS.hget object,  "key"
           last_modified = AWS_REDIS.hget object, "last_modified"
