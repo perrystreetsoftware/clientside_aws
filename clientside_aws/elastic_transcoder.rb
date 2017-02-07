@@ -1,7 +1,6 @@
 helpers do
-  def encode_video(source_key, dest_key)
-
-    pipeline = JSON.parse(AWS_REDIS.get("pipeline"))
+  def encode_video(source_key, dest_key, pipeline_id)
+    pipeline = JSON.parse(AWS_REDIS.get("pipeline:#{pipeline_id}"))
     bucket = pipeline['InputBucket']
     input_obj_name = source_key
     input_obj_key = "s3:bucket:#{bucket}:#{input_obj_name}"
@@ -9,18 +8,17 @@ helpers do
     bucket = pipeline['OutputBucket']
     output_obj_name = dest_key
     output_obj_key = "s3:bucket:#{bucket}:#{output_obj_name}"
-
     input_obj_body = AWS_REDIS.hget input_obj_key, 'body'
-    
+
     tmp = Tempfile.new(source_key)
     tmp.write(input_obj_body)
     tmp.close
-    
+
     # Setup paths
     encoded_path = tmp.path + ".enc"
-    faststart_path = tmp.path + ".fast" 
+    faststart_path = tmp.path + ".fast"
     final_path = nil
-    
+
     # Android is already encoded; ios needs re-encoding
     # Everyone gets faststart treatment
     ffmpeg_video(tmp.path, encoded_path)
@@ -34,13 +32,13 @@ helpers do
 
     if (final_path and File.exist?(final_path))
       # Write
-      file = File.open(final_path, "rb")      
+      file = File.open(final_path, "rb")
       video = file.read
       file.close
-    
+
       AWS_REDIS.hset output_obj_key, "body", video
       AWS_REDIS.hset output_obj_key, "content-type", "video/mp4"
-      
+
       begin
         File.delete(final_path) if File.exist?(final_path)
       rescue Exception => e
@@ -60,7 +58,7 @@ helpers do
     else
     end
   end
-  
+
   def ffmpeg_video(path, output)
 
     flip = nil
@@ -115,32 +113,38 @@ helpers do
     # Just for avconv, because it complains about aac
     args << "-strict"
     args << "experimental"
-    
+
     args << output + "-tmp"
 
     encode_command = args.join(" ")
     results = `#{encode_command} 2>&1`
     `mv #{output}-tmp #{output} 2>&1`
   end
-  
+
   def faststart_video(path, output)
     if `which qt-faststart`.length > 0
       `qt-faststart #{path} #{output}`
       return true
     end
-    
+
     return false
-  end  
+  end
 end
 
 post %r{/elastic_transcoder\.(\w+?)\.amazonaws\.com/2012-09-25/pipelines} do
-  args = JSON::parse(env['rack.input'].read)
-  
-  AWS_REDIS.set "pipeline", args.to_json
-  
-  content_type "application/x-amz-json-1.0"  
+  args = JSON.parse(env['rack.input'].read)
+
+  if AWS_REDIS.get "pipeline:#{args['Name']}"
+    pipeline_id = AWS_REDIS.get "pipeline:#{args['Name']}"
+  else
+    pipeline_id = UUID.new.generate + args['OutputBucket']
+    AWS_REDIS.set "pipeline:#{pipeline_id}", args.to_json
+    AWS_REDIS.set "pipeline:#{args['Name']}", pipeline_id
+  end
+
+  content_type "application/x-amz-json-1.0"
   {:Pipeline => {
-    :Id => UUID.new.generate,
+    :Id => pipeline_id,
     :Name => args['Name'],
     :Status => "Completed",
     :InputBucket => args['InputBucket'],
@@ -152,13 +156,13 @@ end
 
 post %r{/elastic_transcoder\.(\w+?)\.amazonaws\.com/2012-09-25/jobs} do
   args = JSON::parse(env['rack.input'].read)
-    
+
   input_obj_name = args['Input']['Key']
   output_obj_name = args['Output']['Key']
-  
-  encode_video(input_obj_name, output_obj_name)
 
-  content_type "application/x-amz-json-1.0"  
+  encode_video(input_obj_name, output_obj_name, args['PipelineId'])
+
+  content_type "application/x-amz-json-1.0"
   {:Job => {
     :Id => 1,
     :Input => args['Input'],
