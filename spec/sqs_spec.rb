@@ -2,6 +2,7 @@ $LOAD_PATH << "#{File.dirname(__FILE__)}/../"
 
 require 'spec/spec_helper'
 require 'aws-sdk'
+require 'aws-sdk-v1'
 require 'aws_mock'
 
 describe 'Profiles Spec' do
@@ -10,32 +11,73 @@ describe 'Profiles Spec' do
     Sinatra::Application
   end
 
-  it "says hello" do
-    get '/'
-    last_response.should be_ok
-  end
-  
-  it "should post to SQS okay" do
-    sqs = AWS::SQS.new(
-      :access_key_id => "...",
-      :secret_access_key => "...")
-      
-    queue_name = "http://localhost/sqs.localhost.amazonaws.com/test"
+  it 'v1: should post to SQS okay' do
+    sqs = AWS::SQS.new
+
+    queue_name = 'http://sqs.us-mockregion-1.amazonaws.com/v1/test'
     (1..5).each do |i|
-      response = sqs.queues.named(queue_name).send_message("test#{i}")
+      sqs.queues.named(queue_name).send_message("test#{i}")
     end
-    
+
     idx = 1
-    sqs.queues.named(queue_name).poll(:idle_timeout => 3) { |msg|
-      msg.body.should == "test#{idx}"
+    sqs.queues.named(queue_name).poll(idle_timeout: 3) do |msg|
+      expect(msg.body).to eq "test#{idx}"
       msg.delete
       idx += 1
       break if idx > 5
-    }
-    
-    response = sqs.queues.named(queue_name).send_message("test")
-    
-    sqs.queues.named(queue_name).approximate_number_of_messages.should == 1
-  end  
-  
+    end
+
+    sqs.queues.named(queue_name).send_message('test')
+
+    expect(sqs.queues.named(queue_name).approximate_number_of_messages).to eq 1
+  end
+
+  it 'v2: should post to SQS okay' do
+    client = Aws::SQS::Client.new
+    resource = Aws::SQS::Resource.new(client: client)
+    queue =
+      resource.get_queue_by_name(
+        queue_name: 'http://sqs.us-mockregion-1.amazonaws.com/v2/test'
+      )
+
+    (1..5).each do |i|
+      queue.send_message(message_body: "test#{i}")
+    end
+
+    poller = Aws::SQS::QueuePoller.new(queue.url)
+
+    idx = 1
+    poller.poll(idle_timeout: 1) do |msg|
+      expect(msg.body).to eq "test#{idx}"
+      idx += 1
+    end
+
+    sent_msg = queue.send_message(message_body: 'test')
+    expect(queue.attributes['ApproximateNumberOfMessages'].to_i).to eq 1
+
+    poller.poll(idle_timeout: 1, skip_delete: true) do |msg|
+      expect(msg.body).to eq 'test'
+      expect(sent_msg.message_id).to eq msg.message_id
+    end
+
+    expect(queue.attributes['ApproximateNumberOfMessages'].to_i).to eq 1
+    sleep 5
+    queue =
+      resource.get_queue_by_name(
+        queue_name: 'http://sqs.us-mockregion-1.amazonaws.com/v2/test'
+      )
+    expect(queue.attributes['ApproximateNumberOfMessages'].to_i).to eq 1
+
+    poller.poll(idle_timeout: 1, skip_delete: true) do |msg|
+      expect(msg.body).to eq 'test'
+      expect(sent_msg.message_id).to eq msg.message_id
+      poller.delete_message(msg)
+    end
+
+    queue =
+      resource.get_queue_by_name(
+        queue_name: 'http://sqs.us-mockregion-1.amazonaws.com/v2/test'
+      )
+    expect(queue.attributes['ApproximateNumberOfMessages'].to_i).to eq 0
+  end
 end
