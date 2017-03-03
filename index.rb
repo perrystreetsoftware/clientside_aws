@@ -24,6 +24,7 @@ require 'clientside_aws/ses'
 require 'clientside_aws/elastic_transcoder'
 require 'clientside_aws/sns'
 require 'clientside_aws/kinesis'
+require 'clientside_aws/firehose'
 
 # puts "invoking #{AWS::Core.testing ? 'test' : 'dev'}"
 options = { host: 'localhost', port: 6380, timeout: 10 }
