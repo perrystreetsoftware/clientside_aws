@@ -4,25 +4,28 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'clientside_aws/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "clientside_aws"
+  spec.name          = 'clientside_aws'
   spec.version       = ClientsideAws::VERSION
-  spec.authors       = ["Perry Street Software, Inc."]
-  spec.email         = ["noreply@scruff.com"]
-  spec.description   = "This code is meant to be used by developers who are attempting to build web applications on AWS but wish to run client-side testing and validation."
-  spec.summary       = "Select AWS Services Replicated on Your Client"
-  spec.homepage      = "https://github.com/perrystreetsoftware/clientside_aws"
-  spec.license       = "MIT"
+  spec.authors       = ['Perry Street Software, Inc.']
+  spec.email         = ['noreply@scruff.com']
+  spec.description   = 'This code is meant to be used by developers who are attempting to build web applications on AWS but wish to run client-side testing and validation.'
+  spec.summary       = 'Select AWS Services Replicated on Your Client'
+  spec.homepage      = 'https://github.com/perrystreetsoftware/clientside_aws'
+  spec.license       = 'MIT'
 
-  spec.files         = `git ls-files`.split($/)
+  spec.files         = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
-  spec.require_paths = ["lib"]
+  spec.require_paths = ['lib']
 
-# spec.add_development_dependency "rake", "10.1.0"
+  # spec.add_development_dependency "rake", "10.1.0"
   spec.add_development_dependency 'rack-test', '0.5.7'
   spec.add_development_dependency 'rspec', '2.14.1'
-  spec.add_development_dependency "bundler", "~> 1.3"
-  spec.add_dependency 'aws-sdk', '1.59.0'
+  spec.add_development_dependency 'bundler', '~> 1.3'
+  spec.add_development_dependency 'pry-rescue'
+  spec.add_development_dependency 'pry-stack_explorer'
+  spec.add_dependency 'aws-sdk-v1', '1.59.0'
+  spec.add_dependency 'aws-sdk', '~> 2.0'
   spec.add_dependency 'builder', '3.1.4'
   spec.add_dependency 'httparty', '0.11.0'
   spec.add_dependency 'macaddr', '1.6.7'
@@ -45,4 +48,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'tilt', '1.3.6'
   spec.add_dependency 'systemu', '2.6.4'
   spec.add_dependency 'thin', '1.6.3'
+  spec.add_dependency 'webmock'
 end
