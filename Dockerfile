@@ -15,7 +15,7 @@ CMD ["/sbin/my_init"]
 RUN mkdir /mnt/redis
 
 RUN apt-add-repository ppa:brightbox/ruby-ng -y
-RUN apt-get update && apt-get install -y ruby2.1 ruby2.1-dev git-core build-essential
+RUN apt-get update && apt-get install -y ruby2.3 ruby2.3-dev git-core build-essential
 RUN apt-get install -y wget curl
 
 RUN cd /opt ; wget "http://download.redis.io/releases/redis-2.8.17.tar.gz"
@@ -48,4 +48,4 @@ EXPOSE 4567
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-
+WORKDIR /opt/clientside_aws
