@@ -15,29 +15,30 @@ helpers do
     tmp.close
 
     # Setup paths
-    encoded_path = tmp.path + ".enc"
-    faststart_path = tmp.path + ".fast"
+    encoded_path = tmp.path + '.enc'
+    faststart_path = tmp.path + '.fast'
     final_path = nil
 
     # Android is already encoded; ios needs re-encoding
     # Everyone gets faststart treatment
     ffmpeg_video(tmp.path, encoded_path)
+
     if File.exist?(encoded_path)
-      if faststart_video(encoded_path, faststart_path)
-        final_path = faststart_path
-      else
-        final_path = encoded_path
-      end
+      final_path = if faststart_video(encoded_path, faststart_path)
+                     faststart_path
+                   else
+                     encoded_path
+                   end
     end
 
-    if (final_path and File.exist?(final_path))
+    if final_path && File.exist?(final_path)
       # Write
-      file = File.open(final_path, "rb")
+      file = File.open(final_path, 'rb')
       video = file.read
       file.close
 
-      AWS_REDIS.hset output_obj_key, "body", video
-      AWS_REDIS.hset output_obj_key, "content-type", "video/mp4"
+      AWS_REDIS.hset output_obj_key, 'body', video
+      AWS_REDIS.hset output_obj_key, 'content-type', 'video/mp4'
 
       begin
         File.delete(final_path) if File.exist?(final_path)
@@ -55,118 +56,124 @@ helpers do
         tmp.delete
       rescue Exception => e
       end
-    else
     end
   end
 
   def ffmpeg_video(path, output)
-
     flip = nil
     transpose = nil
     info = `avprobe #{path} 2>&1`
     match = info.match(/rotate\s+:\s(\d+)\s/)
     if match
       rotation = match[1]
-      if rotation == "90"
+      if rotation == '90'
         transpose = 1
-      elsif rotation == "270"
+      elsif rotation == '270'
         transpose = 2
-      elsif rotation == "180"
+      elsif rotation == '180'
         flip = true
       end
     end
 
     args = []
 
-    args << "avconv"
-    args << "-y"
+    args << 'avconv'
+    args << '-y'
 
-    args << "-i"
+    args << '-i'
     args << path
 
-    args << "-f"
-    args << "mp4"
+    args << '-f'
+    args << 'mp4'
 
     if transpose
-      args << "-vf"
+      args << '-vf'
       args << "transpose=#{transpose}"
     elsif flip
-      args << "-vf"
-      args << "vflip,hflip"
+      args << '-vf'
+      args << 'vflip,hflip'
     end
 
-    args << "-b:v"
-    args << "900k"
+    args << '-b:v'
+    args << '900k'
 
-    args << "-vcodec"
-    args << "libx264"
+    args << '-vcodec'
+    args << 'libx264'
 
-    args << "-ac"
-    args << "1"
+    args << '-ac'
+    args << '1'
 
-    args << "-ar"
-    args << "44100"
+    args << '-ar'
+    args << '44100'
 
-    args << "-profile:v"
-    args << "baseline"
+    args << '-profile:v'
+    args << 'baseline'
 
     # Just for avconv, because it complains about aac
-    args << "-strict"
-    args << "experimental"
+    args << '-strict'
+    args << 'experimental'
 
-    args << output + "-tmp"
+    args << output + '-tmp'
 
-    encode_command = args.join(" ")
-    results = `#{encode_command} 2>&1`
+    encode_command = args.join(' ')
+    _results = `#{encode_command} 2>&1`
+
     `mv #{output}-tmp #{output} 2>&1`
   end
 
   def faststart_video(path, output)
-    if `which qt-faststart`.length > 0
+    unless `which qt-faststart`.empty?
       `qt-faststart #{path} #{output}`
       return true
     end
 
-    return false
+    false
+  end
+
+  def create_job(args)
+    input_obj_name = args['Input']['Key']
+    output_obj_name = args['Output']['Key']
+    pipeline_id = args['PipelineId']
+
+    encode_video(input_obj_name, output_obj_name, pipeline_id)
+
+    content_type 'application/x-amz-json-1.0'
+    { Job: {
+      Id: 1,
+      Input: args['Input'],
+      Output: args['Output'],
+      PipelineId: args['PipelineId']
+    } }.to_json
+  end
+
+  def create_pipeline(args)
+    if AWS_REDIS.get "pipeline:#{args['Name']}"
+      pipeline_id = AWS_REDIS.get "pipeline:#{args['Name']}"
+    else
+      pipeline_id = UUID.new.generate + args['OutputBucket']
+      AWS_REDIS.set "pipeline:#{pipeline_id}", args.to_json
+      AWS_REDIS.set "pipeline:#{args['Name']}", pipeline_id
+    end
+
+    content_type 'application/x-amz-json-1.0'
+    { Pipeline: {
+      Id: pipeline_id,
+      Name: args['Name'],
+      Status: 'Completed',
+      InputBucket: args['InputBucket'],
+      OutputBucket: args['OutputBucket'],
+      Role: args['Role'],
+      Notifications: args['Notifications']
+    } }.to_json
   end
 end
 
-post %r{/elastic_transcoder\.(\w+?)\.amazonaws\.com/2012-09-25/pipelines} do
+post %r{/elastictranscoder\.(.+?)\.amazonaws\.com/?} do
   args = JSON.parse(env['rack.input'].read)
 
-  if AWS_REDIS.get "pipeline:#{args['Name']}"
-    pipeline_id = AWS_REDIS.get "pipeline:#{args['Name']}"
+  if args['Input'] && args['Output']
+    create_job(args)
   else
-    pipeline_id = UUID.new.generate + args['OutputBucket']
-    AWS_REDIS.set "pipeline:#{pipeline_id}", args.to_json
-    AWS_REDIS.set "pipeline:#{args['Name']}", pipeline_id
+    create_pipeline(args)
   end
-
-  content_type "application/x-amz-json-1.0"
-  {:Pipeline => {
-    :Id => pipeline_id,
-    :Name => args['Name'],
-    :Status => "Completed",
-    :InputBucket => args['InputBucket'],
-    :OutputBucket => args['OutputBucket'],
-    :Role => args['Role'],
-    :Notifications => args['Notifications']
-  }}.to_json
-end
-
-post %r{/elastic_transcoder\.(\w+?)\.amazonaws\.com/2012-09-25/jobs} do
-  args = JSON::parse(env['rack.input'].read)
-
-  input_obj_name = args['Input']['Key']
-  output_obj_name = args['Output']['Key']
-
-  encode_video(input_obj_name, output_obj_name, args['PipelineId'])
-
-  content_type "application/x-amz-json-1.0"
-  {:Job => {
-    :Id => 1,
-    :Input => args['Input'],
-    :Output => args['Output'],
-    :PipelineId => args['PipelineId']
-  }}.to_json
 end
