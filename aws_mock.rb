@@ -1,6 +1,6 @@
 require_relative 'clientside_aws/core'
 require 'webmock/rspec'
-WebMock.disable_net_connect!(allow_localhost: true, allow: 'aws')
+WebMock.allow_net_connect!
 
 # WebMock.before_request do |request_signature, response|
 #   puts "Request #{request_signature} was made and #{response} was returned"

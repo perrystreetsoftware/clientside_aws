@@ -2,7 +2,6 @@ $LOAD_PATH << "#{File.dirname(__FILE__)}/"
 
 require 'rubygems'
 require 'sinatra'
-require 'sinatra/reloader' if development?
 require 'json'
 require 'redis'
 require 'bigdecimal'
