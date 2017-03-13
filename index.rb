@@ -15,7 +15,8 @@ require 'rack/protection'
 
 ENV['RACK_ENV'] = "development" unless ENV['RACK_ENV']
 
-require 'clientside_aws/core'
+require 'clientside_aws/mock/core'
+
 require 'clientside_aws/dynamodb'
 require 'clientside_aws/sqs'
 require 'clientside_aws/s3'

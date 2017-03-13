@@ -1,4 +1,9 @@
-require_relative 'clientside_aws/core'
+require_relative 'clientside_aws/mock/core'
+require_relative 'clientside_aws/mock/s3'
+# require_relative 'clientside_aws/mock/ses'
+# require_relative 'clientside_aws/mock/sns'
+# require_relative 'clientside_aws/mock/kinesis'
+require 'httparty'
 require 'webmock/rspec'
 WebMock.allow_net_connect!
 
@@ -6,25 +11,6 @@ WebMock.allow_net_connect!
 #   puts "Request #{request_signature} was made and #{response} was returned"
 #   binding.pry
 # end
-
-module AWS
-  class S3
-    class Bucket
-      begin
-        old_exists = instance_method(:exists?)
-        define_method(:exists?) do
-          begin
-            old_exists.bind(self).call
-          rescue Errors::NoSuchKey
-            false # bucket does not exist
-          end
-        end
-      rescue NameError
-        # aws-sdk-v1 is not being used
-      end
-    end
-  end
-end
 
 def mock_uri(uri:)
   uri.scheme = 'http'
