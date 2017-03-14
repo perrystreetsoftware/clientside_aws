@@ -1,9 +1,8 @@
 $LOAD_PATH << "#{File.dirname(__FILE__)}/../"
 
-require 'spec/spec_helper'
 require 'aws-sdk'
 require 'aws-sdk-v1'
-require 'aws_mock'
+require 'spec/spec_helper'
 
 describe 'Profiles Spec' do
   include Rack::Test::Methods

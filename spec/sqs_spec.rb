@@ -1,9 +1,8 @@
 $LOAD_PATH << "#{File.dirname(__FILE__)}/../"
 
-require 'spec/spec_helper'
 require 'aws-sdk'
 require 'aws-sdk-v1'
-require 'aws_mock'
+require 'spec/spec_helper'
 
 describe 'Profiles Spec' do
   include Rack::Test::Methods
@@ -33,6 +32,9 @@ describe 'Profiles Spec' do
   end
 
   it 'v2: should post to SQS okay' do
+    old_blackout_time = SQS_DEFAULT_VISIBILITY_TIMEOUT
+    SQS_DEFAULT_VISIBILITY_TIMEOUT = 5
+
     client = Aws::SQS::Client.new
     resource = Aws::SQS::Resource.new(client: client)
     queue =
@@ -61,7 +63,7 @@ describe 'Profiles Spec' do
     end
 
     expect(queue.attributes['ApproximateNumberOfMessages'].to_i).to eq 1
-    sleep 5
+    sleep SQS_DEFAULT_VISIBILITY_TIMEOUT
     queue =
       resource.get_queue_by_name(
         queue_name: 'http://sqs.us-mockregion-1.amazonaws.com/v2/test'
@@ -79,5 +81,7 @@ describe 'Profiles Spec' do
         queue_name: 'http://sqs.us-mockregion-1.amazonaws.com/v2/test'
       )
     expect(queue.attributes['ApproximateNumberOfMessages'].to_i).to eq 0
+
+    SQS_DEFAULT_VISIBILITY_TIMEOUT = old_blackout_time
   end
 end

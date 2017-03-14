@@ -168,7 +168,7 @@ helpers do
   end
 end
 
-post %r{/elastictranscoder\.(.+?)\.amazonaws\.com/(.*)?} do
+post %r{/elastictranscoder\.(.+?)\.amazonaws\.com/?(.*)?} do
   args = JSON.parse(env['rack.input'].read)
 
   if args['Input'] && args['Output']

@@ -1,10 +1,15 @@
+# Include this file in separate projects when you want to redirect
+# requests that normally would go to the AWS production infrastrure and
+# instead route them to a container you are running locally
+
 require_relative 'clientside_aws/mock/core'
 require_relative 'clientside_aws/mock/s3'
-# require_relative 'clientside_aws/mock/ses'
-# require_relative 'clientside_aws/mock/sns'
-# require_relative 'clientside_aws/mock/kinesis'
+require_relative 'clientside_aws/mock/ses'
+require_relative 'clientside_aws/mock/sns'
+require_relative 'clientside_aws/mock/kinesis'
 require 'httparty'
 require 'webmock/rspec'
+require 'pry'
 WebMock.allow_net_connect!
 
 # WebMock.before_request do |request_signature, response|
@@ -107,25 +112,77 @@ end
 
 RSpec.configure do |config|
   config.before(:each) do
-    stub_request(:post, %r{https\:\/\/([\w\.]+\.us\-mockregion\-1|aws)}) \
-      .to_return do |request|
-      mock_post(request: request)
-    end
-    stub_request(:get, %r{https\:\/\/([\w\.]+\.us\-mockregion\-1|aws)}) \
-      .to_return do |request|
-      mock_get(request: request)
-    end
-    stub_request(:head, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
-      .to_return do |request|
-      mock_head(request: request)
-    end
-    stub_request(:put, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
-      .to_return do |request|
-      mock_put(request: request)
-    end
-    stub_request(:delete, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
-      .to_return do |request|
-      mock_delete(request: request)
+    if Sinatra::Base.settings.clientside_aws_testing
+      stub_request(:post, /us-mockregion-1/).to_return do |request|
+        post "/#{request.uri.host}",
+             request.body,
+             request.headers.merge('SERVER_NAME' => request.uri.host)
+
+        { headers: last_response.header,
+          status: last_response.status,
+          body: last_response.body }
+      end
+
+      stub_request(:get, /us-mockregion-1/).to_return do |request|
+        get "/#{request.uri.host}#{request.uri.path}",
+            request.uri.query_values,
+            request.headers.merge('SERVER_NAME' => request.uri.host)
+
+        { headers: last_response.header,
+          status: last_response.status,
+          body: last_response.body }
+      end
+
+      stub_request(:put, /us-mockregion-1/).to_return do |request|
+        put "/#{request.uri.host}#{request.uri.path}",
+            { body: request.body },
+            request.headers.merge('SERVER_NAME' => request.uri.host)
+
+        { headers: last_response.header,
+          status: last_response.status,
+          body: last_response.body }
+      end
+
+      stub_request(:head, /us-mockregion-1/).to_return do |request|
+        get "/#{request.uri.host}#{request.uri.path}",
+            { head_request: 1 }.merge(request.uri.query_values || {}),
+            request.headers.merge('SERVER_NAME' => request.uri.host)
+
+        { headers: last_response.header,
+          status: last_response.status,
+          body: '' }
+      end
+
+      stub_request(:delete, /us-mockregion-1/).to_return do |request|
+        delete "/#{request.uri.host}#{request.uri.path}",
+               request.uri.query_values,
+               request.headers.merge('SERVER_NAME' => request.uri.host)
+
+        { headers: last_response.header,
+          status: last_response.status,
+          body: last_response.body }
+      end
+    else
+      stub_request(:post, %r{https\:\/\/([\w\.]+\.us\-mockregion\-1|aws)}) \
+        .to_return do |request|
+        mock_post(request: request)
+      end
+      stub_request(:get, %r{https\:\/\/([\w\.]+\.us\-mockregion\-1|aws)}) \
+        .to_return do |request|
+        mock_get(request: request)
+      end
+      stub_request(:head, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
+        .to_return do |request|
+        mock_head(request: request)
+      end
+      stub_request(:put, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
+        .to_return do |request|
+        mock_put(request: request)
+      end
+      stub_request(:delete, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
+        .to_return do |request|
+        mock_delete(request: request)
+      end
     end
   end
 end

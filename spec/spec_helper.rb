@@ -5,15 +5,17 @@ require 'index'
 require 'sinatra'
 require 'rspec'
 require 'rack/test'
+require 'aws_mock'
 
 Sinatra::Base.set :environment, :test
 Sinatra::Base.set :run, false
 Sinatra::Base.set :raise_errors, true
 Sinatra::Base.set :logging, false
+Sinatra::Base.set :clientside_aws_testing, true
 
 RSpec.configure do |config|
   config.include Rack::Test::Methods
-  
+
   config.before(:suite) do
     PID1 = fork do
       $stdout = File.new('/dev/null', 'w')
