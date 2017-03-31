@@ -9,7 +9,6 @@ require_relative 'clientside_aws/mock/sns'
 require_relative 'clientside_aws/mock/kinesis'
 require 'httparty'
 require 'webmock/rspec'
-require 'pry'
 WebMock.allow_net_connect!
 
 # WebMock.before_request do |request_signature, response|
@@ -112,7 +111,10 @@ end
 
 RSpec.configure do |config|
   config.before(:each) do
-    if Sinatra::Base.settings.clientside_aws_testing
+    clientside_aws_testing = \
+      defined?(Sinatra::Base.settings.clientside_aws_testing) && \
+      Sinatra::Base.settings.clientside_aws_testing
+    if clientside_aws_testing
       stub_request(:post, /us-mockregion-1/).to_return do |request|
         post "/#{request.uri.host}",
              request.body,

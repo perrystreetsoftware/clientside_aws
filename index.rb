@@ -13,7 +13,7 @@ require 'rack'
 require 'rack/cors'
 require 'rack/protection'
 
-ENV['RACK_ENV'] = "development" unless ENV['RACK_ENV']
+ENV['RACK_ENV'] = 'development' unless ENV['RACK_ENV']
 
 require 'clientside_aws/mock/core'
 
@@ -26,23 +26,25 @@ require 'clientside_aws/sns'
 require 'clientside_aws/kinesis'
 require 'clientside_aws/firehose'
 
-# puts "invoking #{AWS::Core.testing ? 'test' : 'dev'}"
 options = { host: 'localhost', port: 6380, timeout: 10 }
-options = { host: 'redis' } unless AWS::Core.testing
+options = { host: 'redis' } unless \
+  defined?(Sinatra::Base.settings.clientside_aws_testing) && \
+  Sinatra::Base.settings.clientside_aws_testing
+
 AWS_REDIS = Redis.new(options)
 
 configure :development do
   use Rack::Cors do
     allow do
       origins '*'
-      resource '*', :headers => :any, :methods => [:get, :post, :options, :put]
+      resource '*', headers: :any, methods: [:get, :post, :options, :put]
     end
   end
-  set :protection, :except => [:http_origin]
+  set :protection, except: [:http_origin]
 end
 
-DYNAMODB_PREFIX = "DynamoDBv20110924"
+DYNAMODB_PREFIX = 'DynamoDBv20110924'.freeze
 
 get '/' do
-  "hello"
+  'hello'
 end
