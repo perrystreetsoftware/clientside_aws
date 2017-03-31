@@ -134,23 +134,40 @@ put %r{/(.*?)\.s3\.(.*?\.amazonaws\.com)?/(.+)} do
   # upload the file (chunking not implemented) to fake S3
   if file_name && bucket
     file_name = file_name[1..-1] if '/' == file_name[0]
-    body_send = AWS::Core.testing ? params[:body] : request.body.read
+    clientside_aws_testing = \
+      defined?(Sinatra::Base.settings.clientside_aws_testing) && \
+      Sinatra::Base.settings.clientside_aws_testing
+    body_send = clientside_aws_testing ? params[:body] : request.body.read
+
     # Handle the copy_XXX case
-    if (body_send.nil? || body_send.empty?) && (env.key?('HTTP_X_AMZ_COPY_SOURCE') || env.key?('x-amz-copy-source'))
-      copy_source = env['HTTP_X_AMZ_COPY_SOURCE'] || env['x-amz-copy-source']
-      if copy_source.start_with?('/')
-        (_extra, srcbucket, srcfile) = copy_source.split('/')
-      else
-        (srcbucket, srcfile) = copy_source.split('/')
+    if body_send.nil? || body_send.empty?
+      %w(HTTP_X_AMZ_COPY_SOURCE x-amz-copy-source X-Amz-Copy-Source).each do |copy_source_key|
+        next unless env.key?(copy_source_key)
+        copy_source = env[copy_source_key]
+        if copy_source.start_with?('/')
+          (_extra, srcbucket, srcfile) = copy_source.split('/')
+        else
+          (srcbucket, srcfile) = copy_source.split('/')
+        end
+        body_send = download_file(srcbucket, srcfile)
+        break
       end
-      body_send = download_file(srcbucket, srcfile)
     end
 
-    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'body', body_send
+    if AWS_REDIS.hget("s3:bucket:#{bucket}:#{file_name}", 'size').to_i > 0 &&
+       (body_send.nil? || body_send.empty?) &&
+       env.key?('HTTP_X_AMZ_ACL')
+      # you are setting the ACL only on a file that already seems to exist
+      # Do not update the body
+    else
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'body', body_send
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'size', body_send.length
+    end
+
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'key', file_name
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'last_modified', Time.now.to_i
-    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'size', body_send.length
     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'etag', Digest::MD5.hexdigest(body_send)
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'acl', env['HTTP_X_AMZ_ACL']
 
     %w(content-type Content-Type CONTENT_TYPE).each do |content_type_key|
       next unless env.key?(content_type_key)
