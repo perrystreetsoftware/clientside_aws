@@ -137,6 +137,7 @@ describe 'Profiles Spec' do
 
     renamed_object = bucket.objects['test2_v1.file']
     expect(renamed_object.exists?).to be true
+    expect(renamed_object.read.nil?).to be false
   end
 
   it 'v2: should support rename_to' do
