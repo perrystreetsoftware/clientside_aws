@@ -19,8 +19,8 @@ RSpec.configure do |config|
   config.before(:suite) do
     PID1 = fork do
       $stdout = File.new('/dev/null', 'w')
-      File.open("test1.conf", 'w') {|f| f.write("port 6380\ndbfilename test1.rdb\nloglevel warning") }
-      exec "redis-server test1.conf"
+      File.open('test1.conf', 'w') { |f| f.write("port 6380\ndbfilename test1.rdb\nloglevel warning") }
+      exec 'redis-server test1.conf'
     end
     puts "PID1 is #{PID1}\n\n"
     sleep(3)
@@ -49,18 +49,17 @@ RSpec.configure do |config|
   config.after(:suite) do
     clean_redis
 
-    puts "Killing redis-server"
+    puts 'Killing redis-server'
 
     STDOUT.flush
-    Process.kill("KILL", PID1)
-    FileUtils.rm "test1.rdb" if File.exists?("test1.rdb")
-    FileUtils.rm "test1.conf" if File.exists?("test1.conf")
+    Process.kill('KILL', PID1)
+    FileUtils.rm 'test1.rdb' if File.exist?('test1.rdb')
+    FileUtils.rm 'test1.conf' if File.exist?('test1.conf')
     Process.waitall
   end
-
 end
 
 def clean_redis
-  raise "cannot flush" unless ENV['RACK_ENV'] == "test"
+  raise 'cannot flush' unless ENV['RACK_ENV'] == 'test'
   AWS_REDIS.flushdb
 end
