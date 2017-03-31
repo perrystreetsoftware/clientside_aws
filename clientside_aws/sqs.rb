@@ -1,4 +1,5 @@
-SQS_DEFAULT_VISIBILITY_TIMEOUT = (ENV['SQS_VISIBILITY_TIMEOUT'] || 60 * 60 * 6).to_i
+SQS_DEFAULT_VISIBILITY_TIMEOUT = \
+  (ENV['SQS_VISIBILITY_TIMEOUT'] || 60 * 60 * 6).to_i
 
 helpers do
   def get_queue_url
