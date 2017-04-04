@@ -15,6 +15,30 @@ module AWS
       end
     end
 
+    class PresignedPost
+      @@host = nil
+      @@port = nil
+      def self.mock_host=(host)
+        @@host = host
+      end
+
+      def self.mock_port=(port)
+        @@port = port
+      end
+
+      def mock_host
+        @@host || config.s3_endpoint.split(':').first
+      end
+
+      def mock_port
+        @@port || config.s3_endpoint.split(':')[1].split('/').first.to_i
+      end
+
+      def url
+        URI::HTTP.build(host: mock_host, path: "/s3/#{bucket.name}", port: mock_port)
+      end
+    end
+
     # class Client < Core::Client
     #   module Validators
     #     # this keeps it from fucking up our hostname
@@ -23,31 +47,7 @@ module AWS
     #     end
     #   end
     # end
-    #
-    # class PresignedPost
-    #   @@host = nil
-    #   @@port = nil
-    #   def self.mock_host=(host)
-    #     @@host = host
-    #   end
-    #
-    #   def self.mock_port=(port)
-    #     @@port = port
-    #   end
-    #
-    #   def mock_host
-    #     @@host || config.s3_endpoint.split(':').first
-    #   end
-    #
-    #   def mock_port
-    #     @@port || config.s3_endpoint.split(':')[1].split('/').first.to_i
-    #   end
-    #
-    #   def url
-    #     URI::HTTP.build(host: mock_host, path: "/s3/#{bucket.name}", port: mock_port)
-    #   end
-    # end
-    #
+
     # class S3Object
     #   def presign_v4(method, _options)
     #     if method == :read || method == :get
