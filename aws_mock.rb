@@ -8,7 +8,15 @@ require_relative 'clientside_aws/mock/ses'
 require_relative 'clientside_aws/mock/sns'
 require_relative 'clientside_aws/mock/kinesis'
 require 'httparty'
-require 'webmock/rspec'
+# We do NOT use webmock/rspec because it removes the matchers after every test
+# this breaks MET which is expecting to be able to communicate with AWS
+# in the before(:all) rspec block
+# Thus we just manually include what we needed from webmock/rspec and
+# did not include the code to remove matchers after every test
+require 'webmock'
+require 'rspec'
+
+WebMock.enable!
 WebMock.allow_net_connect!
 
 # WebMock.before_request do |request_signature, response|
@@ -110,6 +118,9 @@ WebMock.stub_request(:delete, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
 end
 
 RSpec.configure do |config|
+  config.include WebMock::API
+  config.include WebMock::Matchers
+
   config.before(:each) do
     clientside_aws_testing = \
       defined?(Sinatra::Base.settings.clientside_aws_testing) && \
