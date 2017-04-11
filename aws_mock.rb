@@ -122,6 +122,8 @@ RSpec.configure do |config|
   config.include WebMock::Matchers
 
   config.before(:each) do
+    WebMock.reset!
+
     clientside_aws_testing = \
       defined?(Sinatra::Base.settings.clientside_aws_testing) && \
       Sinatra::Base.settings.clientside_aws_testing
