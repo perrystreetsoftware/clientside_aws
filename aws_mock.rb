@@ -92,12 +92,12 @@ def mock_delete(request:)
     body: response.body }
 end
 
-WebMock.stub_request(:post, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
+WebMock.stub_request(:post, %r{https\:\/\/([\w\.]+\.us\-mockregion\-1|aws)}) \
        .to_return do |request|
   mock_post(request: request)
 end
 
-WebMock.stub_request(:get, %r{https\:\/\/[\w\.]+\.us\-mockregion\-1}) \
+WebMock.stub_request(:get, %r{https\:\/\/([\w\.]+\.us\-mockregion\-1|aws)}) \
        .to_return do |request|
   mock_get(request: request)
 end
