@@ -1,6 +1,19 @@
 require 'builder'
 
 helpers do
+  def get_file(bucket:, file_name:)
+    halt 404, objectNotFound if AWS_REDIS.hget("s3:bucket:#{bucket}:#{file_name}", 'body').nil?
+
+    body = download_file(bucket, file_name)
+    content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{file_name}", 'content-type')
+    response.headers['content-type'] = content_type.nil? ? 'html' : content_type
+    # response.headers["Content-Length"] = body.length.to_s
+    response.headers['etag'] = Digest::MD5.hexdigest(body)
+    response.body = body
+
+    status 200
+  end
+
   def list_buckets
     buckets = AWS_REDIS.keys 's3:bucket:*'
 
@@ -104,16 +117,15 @@ get %r{/(.*?)\.(s3.*?\.amazonaws\.com)?/(.+)} do
   bucket = params[:captures][0]
   file_name = params[:captures][2]
 
-  halt 404, objectNotFound if AWS_REDIS.hget("s3:bucket:#{bucket}:#{file_name}", 'body').nil?
+  get_file(bucket: bucket, file_name: file_name)
+end
 
-  body = download_file(bucket, file_name)
-  content_type = AWS_REDIS.hget("s3:bucket:#{bucket}:#{file_name}", 'content-type')
-  response.headers['content-type'] = content_type.nil? ? 'html' : content_type
-  # response.headers["Content-Length"] = body.length.to_s
-  response.headers['etag'] = Digest::MD5.hexdigest(body)
-  response.body = body
+# Old-style way of referencing S3
+get %r{/s3/(.+)?/(.+)} do
+  bucket = params[:captures][0]
+  file_name = params[:captures][1]
 
-  status 200
+  get_file(bucket: bucket, file_name: file_name)
 end
 
 # Bucket creation
