@@ -7,6 +7,7 @@ require_relative 'clientside_aws/mock/s3'
 require_relative 'clientside_aws/mock/ses'
 require_relative 'clientside_aws/mock/sns'
 require_relative 'clientside_aws/mock/kinesis'
+require_relative 'clientside_aws/mock/firehose'
 require 'httparty'
 # We do NOT use webmock/rspec because it removes the matchers after every test
 # this breaks MET which is expecting to be able to communicate with AWS
