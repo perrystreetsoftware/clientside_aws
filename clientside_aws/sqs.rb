@@ -210,20 +210,20 @@ helpers do
 end
 
 post %r{/sqs(\.(\w+?)\.amazonaws\.com)?/?(.*)} do
-  __check_pending
-
   case params[:Action]
   when 'SendMessage'
     send_message(params[:QueueUrl], params[:MessageBody])
   when 'SendMessageBatch'
     send_message_batch
   when 'ReceiveMessage'
+    __check_pending
     receive_message
   when 'DeleteMessage'
     delete_message
   when 'DeleteMessageBatch'
     delete_message_batch
   when 'GetQueueAttributes'
+    __check_pending
     get_queue_attributes
   when 'GetQueueUrl'
     get_queue_url
