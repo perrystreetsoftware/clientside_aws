@@ -1,20 +1,32 @@
 helpers do
+  def hkey_from_params(params)
+    "#{params['IpProtocol']}:#{params['FromPort']}:#{params['ToPort']}"
+  end
+
   def authorize_security_group_ingress(params)
-    port_info = { ToPort: params['ToPort'],
-                  FromPort: params['FromPort'],
-                  GroupId: params['GroupId'],
-                  IpProtocol: params['IpProtocol'],
-                  CidrIp: params['CidrIp'] }
-    AWS_REDIS.sadd("ingress:#{params['GroupId']}", port_info.to_json)
+    hkey = hkey_from_params(params)
+    existing = AWS_REDIS.hget("ingress:#{params['GroupId']}",
+                              hkey)
+    value = existing ? JSON.parse(existing).to_set : Set.new
+    value << params['CidrIp']
+
+    AWS_REDIS.hset("ingress:#{params['GroupId']}",
+                   hkey,
+                   value.to_a.to_json)
   end
 
   def revoke_security_group_ingress(params)
-    AWS_REDIS.smembers("ingress:#{params['GroupId']}").each do |member_raw|
-      member = JSON.parse(member_raw)
-      if member['CidrIp'] == params['CidrIp']
-        AWS_REDIS.srem "ingress:#{params['GroupId']}", member_raw
-        break
-      end
+    hkey = hkey_from_params(params)
+    value = AWS_REDIS.hget("ingress:#{params['GroupId']}", hkey)
+
+    return unless value
+
+    new_value = JSON.parse(value).reject { |r| r == params['CidrIp'] }
+
+    if new_value.length.positive?
+      AWS_REDIS.hset("ingress:#{params['GroupId']}", hkey, new_value.to_json)
+    else
+      AWS_REDIS.hdel("ingress:#{params['GroupId']}", hkey)
     end
   end
 
@@ -34,19 +46,21 @@ helpers do
           xml.tag!(:groupDescription, 'group-description')
           xml.tag!(:vpcId, 'vpc-00000000')
           xml.ipPermissions do
-            if AWS_REDIS.scard("ingress:#{group_id}").positive?
+            AWS_REDIS.hkeys("ingress:#{group_id}").each do |protocol_port_tuple|
               xml.item do
-                xml.tag!(:ipProtocol, 'TCP')
-                xml.tag!(:fromPort, 443)
-                xml.tag!(:toPort, 443)
-                xml.tag!(:groups, nil)
-                xml.ipRanges do
-                  ingress_permissions = AWS_REDIS.smembers("ingress:#{group_id}")
-                  ingress_permissions.each do |raw|
-                    permission = JSON.parse(raw)
+                (protocol, from_port, to_port) = protocol_port_tuple.split(':')
 
+                xml.tag!(:ipProtocol, protocol)
+                xml.tag!(:fromPort, from_port.to_i)
+                xml.tag!(:toPort, to_port.to_i)
+                xml.tag!(:groups, nil)
+
+                xml.ipRanges do
+                  ingress_permissions = \
+                    AWS_REDIS.hget("ingress:#{group_id}", protocol_port_tuple)
+                  JSON.parse(ingress_permissions).each do |cidr_ip|
                     xml.item do
-                      xml.tag!(:cidrIp, permission['CidrIp'])
+                      xml.tag!(:cidrIp, cidr_ip)
                     end
                   end
                 end
