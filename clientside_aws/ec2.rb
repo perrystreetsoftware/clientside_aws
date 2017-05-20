@@ -1,3 +1,5 @@
+require 'ipaddr'
+
 helpers do
   def hkey_from_params(params)
     "#{params['IpProtocol']}:#{params['FromPort']}:#{params['ToPort']}"
@@ -8,7 +10,10 @@ helpers do
     existing = AWS_REDIS.hget("ingress:#{params['GroupId']}",
                               hkey)
     value = existing ? JSON.parse(existing).to_set : Set.new
-    value << params['CidrIp']
+    ip_addr = IPAddr.new(params['CidrIp'])
+    mask = params['CidrIp'].split('/').last
+    # Interpret the mask, so 10.0.0.1/24 converts to 10.0.0.0/24
+    value << "#{ip_addr.to_s}/#{mask}"
 
     AWS_REDIS.hset("ingress:#{params['GroupId']}",
                    hkey,
