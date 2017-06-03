@@ -2,7 +2,9 @@ require 'ipaddr'
 
 helpers do
   def hkey_from_params(params)
-    "#{params['IpProtocol']}:#{params['FromPort']}:#{params['ToPort']}"
+    "#{params['IpPermissions.1.IpProtocol']}:" \
+    "#{params['IpPermissions.1.FromPort']}:" \
+    "#{params['IpPermissions.1.ToPort']}"
   end
 
   def authorize_security_group_ingress(params)
@@ -10,10 +12,10 @@ helpers do
     existing = AWS_REDIS.hget("ingress:#{params['GroupId']}",
                               hkey)
     value = existing ? JSON.parse(existing).to_set : Set.new
-    ip_addr = IPAddr.new(params['CidrIp'])
-    mask = params['CidrIp'].split('/').last
+    ip_addr = IPAddr.new(params['IpPermissions.1.IpRanges.1.CidrIp'])
+    mask = params['IpPermissions.1.IpRanges.1.CidrIp'].split('/').last
     # Interpret the mask, so 10.0.0.1/24 converts to 10.0.0.0/24
-    value << "#{ip_addr.to_s}/#{mask}"
+    value << "#{ip_addr}/#{mask}"
 
     AWS_REDIS.hset("ingress:#{params['GroupId']}",
                    hkey,
@@ -26,7 +28,9 @@ helpers do
 
     return unless value
 
-    new_value = JSON.parse(value).reject { |r| r == params['CidrIp'] }
+    new_value = JSON.parse(value).reject do |r|
+      r == params['IpPermissions.1.IpRanges.1.CidrIp']
+    end
 
     if new_value.length.positive?
       AWS_REDIS.hset("ingress:#{params['GroupId']}", hkey, new_value.to_json)
