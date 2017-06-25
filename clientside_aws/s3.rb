@@ -121,7 +121,7 @@ get %r{/(.*?)\.(s3.*?\.amazonaws\.com)?/(.+)} do
 end
 
 # Old-style way of referencing S3
-get %r{/s3/(.+)?/(.+)} do
+get %r{/s3/([^/]+)?/(.+)} do
   bucket = params[:captures][0]
   file_name = params[:captures][1]
 
