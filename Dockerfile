@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.9.17
+FROM phusion/baseimage:0.9.22
 MAINTAINER Eric Silverberg
 
 # Set correct environment variables.
@@ -20,7 +20,7 @@ RUN apt-get install -y wget curl
 
 RUN cd /opt ; wget "http://download.redis.io/releases/redis-2.8.17.tar.gz"
 RUN cd /opt ; gunzip redis-2.8.17.tar.gz ; tar -xvf redis-2.8.17.tar
-RUN cd /opt/redis-2.8.17 ; ./configure ; make ; sudo make install
+RUN cd /opt/redis-2.8.17 ; ./configure ; make ; make install
 
 # Install for testing ffmpeg stuff
 RUN apt-get install -y libav-tools
