@@ -203,21 +203,21 @@ delete %r{/(.*?)\.s3\.(.*?\.amazonaws\.com)?/(.+)} do
   status 200
 end
 
-# post %r{/s3(.*?\.amazonaws\.com)?/([^/]+)/?} do
-#   # upload the file (chunking not implemented) to fake S3
-#   bucket = params[:captures][1]
-#   file_name = params[:key]
-#   if file_name
-#     file_name = file_name[1..-1] if file_name.start_with? '/'
-#     body_send = params[:file]
-#     body_send = body_send[:tempfile].read unless AWS::Core.testing
-#
-#     AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'body', body_send
-#     if env.key?('content-type')
-#       AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'content-type', env['content-type']
-#     elsif env.key?('CONTENT_TYPE')
-#       AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'content-type', env['CONTENT_TYPE']
-#     end
-#   end
-#   status 200
-# end
+post %r{/s3(.*?\.amazonaws\.com)?/([^/]+)/?} do
+  # upload the file (chunking not implemented) to fake S3
+  bucket = params[:captures][1]
+  file_name = params[:key]
+  if file_name
+    file_name = file_name[1..-1] if file_name.start_with? '/'
+    body_send = params[:file]
+    body_send = body_send[:tempfile].read
+
+    AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'body', body_send
+    if env.key?('content-type')
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'content-type', env['content-type']
+    elsif env.key?('CONTENT_TYPE')
+      AWS_REDIS.hset "s3:bucket:#{bucket}:#{file_name}", 'content-type', env['CONTENT_TYPE']
+    end
+  end
+  status 200
+end
