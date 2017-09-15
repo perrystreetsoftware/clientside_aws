@@ -34,6 +34,11 @@ options = { host: 'redis' } unless \
 
 AWS_REDIS = Redis.new(options)
 
+# Allow other containers to offset Date.today and Time.now from their spec tests
+require 'lib/utilities/date_patch'
+require 'lib/utilities/time_patch'
+Time.scruff_redis_instance = AWS_REDIS
+
 configure :development do
   use Rack::Cors do
     allow do
