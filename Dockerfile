@@ -1,13 +1,8 @@
 FROM phusion/baseimage:0.9.22
-MAINTAINER Eric Silverberg
+MAINTAINER Perry Street Software
 
 # Set correct environment variables.
 ENV HOME /root
-
-# Regenerate SSH host keys. baseimage-docker does not contain any, so you
-# have to do that yourself. You may also comment out this instruction; the
-# init system will auto-generate one during boot.
-RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
 
 # Use baseimage-docker's init system.
 CMD ["/sbin/my_init"]
@@ -15,12 +10,12 @@ CMD ["/sbin/my_init"]
 RUN mkdir /mnt/redis
 
 RUN apt-add-repository ppa:brightbox/ruby-ng -y
-RUN apt-get update && apt-get install -y ruby2.3 ruby2.3-dev git-core build-essential
+RUN apt-get update && apt-get install -y ruby2.4 ruby2.4-dev git-core build-essential zlib1g-dev
 RUN apt-get install -y wget curl
 
-RUN cd /opt ; wget "http://download.redis.io/releases/redis-2.8.17.tar.gz"
-RUN cd /opt ; gunzip redis-2.8.17.tar.gz ; tar -xvf redis-2.8.17.tar
-RUN cd /opt/redis-2.8.17 ; ./configure ; make ; make install
+RUN cd /opt ; wget "http://download.redis.io/releases/redis-2.8.24.tar.gz"
+RUN cd /opt ; gunzip redis-2.8.24.tar.gz ; tar -xvf redis-2.8.24.tar
+RUN cd /opt/redis-2.8.24 ; ./configure ; make ; make install
 
 # Install for testing ffmpeg stuff
 RUN apt-get install -y libav-tools
@@ -31,7 +26,7 @@ RUN chmod 755 /etc/service/redis-server/run
 
 # Add redis conf file
 RUN mkdir /etc/redis
-RUN cd /opt/redis-2.8.17 ; cat redis.conf | sed "s/dir \.\//dir \/mnt\/redis\//" > /etc/redis/redis.conf
+RUN cd /opt/redis-2.8.24 ; cat redis.conf | sed "s/dir \.\//dir \/mnt\/redis\//" > /etc/redis/redis.conf
 
 # Now, fetch clientside aws
 RUN gem install bundler

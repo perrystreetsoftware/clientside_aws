@@ -1,8 +1,6 @@
 
 $LOAD_PATH << "#{File.dirname(__FILE__)}/../"
 
-require 'aws-sdk'
-require 'aws-sdk-v1'
 require 'spec/spec_helper'
 
 describe 'Profiles Spec' do
@@ -12,7 +10,7 @@ describe 'Profiles Spec' do
   end
 
   it 'v1: should post to transcoder okay' do
-    guid = UUID.new.generate
+    guid = SecureRandom.hex(10)
     video_file = File.new("#{File.dirname(__FILE__)}" \
                           '/../public/images/stock_video.mp4')
 
@@ -74,7 +72,7 @@ describe 'Profiles Spec' do
   end
 
   it 'v2: should post to transcoder okay' do
-    guid = UUID.new.generate
+    guid = SecureRandom.hex(10)
     video_file = File.new("#{File.dirname(__FILE__)}" \
                           '/../public/images/stock_video.mp4')
 

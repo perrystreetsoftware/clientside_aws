@@ -46,10 +46,10 @@ helpers do
     xml.instruct!
     xmlns = 'http://ec2.amazonaws.com/doc/2016-11-15/'
     xml.DescribeSecurityGroupsResponse(xmlns: xmlns) do
-      xml.tag!(:requestId, UUID.new.generate)
+      xml.tag!(:requestId, SecureRandom.hex(10))
       xml.securityGroupInfo do
         xml.item do
-          xml.tag!(:ownerId, UUID.new.generate)
+          xml.tag!(:ownerId, SecureRandom.hex(10))
           xml.tag!(:groupId, group_id)
           xml.tag!(:groupName, 'group-name')
           xml.tag!(:groupDescription, 'group-description')

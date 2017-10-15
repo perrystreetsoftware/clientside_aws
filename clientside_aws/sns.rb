@@ -17,7 +17,7 @@ helpers do
 
         xml.tag!(:EndpointArn,
                  'arn:aws:sns:us-east-1:999999999999:' \
-                 "#{platform}MYAPP/#{UUID.new.generate}")
+                 "#{platform}MYAPP/#{SecureRandom.hex(10)}")
       end
     end
 

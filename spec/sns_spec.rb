@@ -1,7 +1,5 @@
 $LOAD_PATH << "#{File.dirname(__FILE__)}/../"
 
-require 'aws-sdk'
-require 'aws-sdk-v1'
 require 'spec/spec_helper'
 
 describe 'Profiles Spec' do

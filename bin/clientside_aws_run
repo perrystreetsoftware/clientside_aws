@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+cmd = "docker run -d --rm -p 5567:4567 --name clientside_aws clientside_aws:latest"
+puts `#{cmd}`
+

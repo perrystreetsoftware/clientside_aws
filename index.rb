@@ -27,10 +27,16 @@ require 'clientside_aws/sns'
 require 'clientside_aws/kinesis'
 require 'clientside_aws/firehose'
 
-options = { host: 'localhost', port: 6380, timeout: 10 }
-options = { host: 'redis' } unless \
-  defined?(Sinatra::Base.settings.clientside_aws_testing) && \
-  Sinatra::Base.settings.clientside_aws_testing
+options = if defined?(Sinatra::Base.settings.clientside_aws_testing) && \
+             Sinatra::Base.settings.clientside_aws_testing
+            { host: 'localhost', port: 6380, timeout: 10 }
+          elsif ENV.key?('REDIS_HOST') && ENV.key?('REDIS_PORT')
+            { host: ENV['REDIS_HOST'],
+              port: ENV['REDIS_PORT'].to_i }
+          else
+            # Use localhost port 6379
+            {}
+          end
 
 AWS_REDIS = Redis.new(options)
 

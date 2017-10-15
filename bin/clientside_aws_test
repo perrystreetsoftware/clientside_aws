@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+
+cmd = "docker run -it --rm -p 6567:4567 -v ~/scruff/clientside_aws:/opt/clientside_aws --name clientside_aws_test clientside_aws bash"
+puts cmd

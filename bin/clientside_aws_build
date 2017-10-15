@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+path = File.dirname(__FILE__)
+dockerfile_path = File.join(path, '../')
+
+puts `docker build -t=clientside_aws:latest #{dockerfile_path}`

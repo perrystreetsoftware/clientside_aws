@@ -1,17 +1,23 @@
 # Set your path to the redis-server binary here
 ENV['RACK_ENV'] = 'test'
 
-require 'index'
-require 'sinatra'
+require 'pry'
+require 'aws-sdk-v1'
+require 'aws-sdk'
 require 'rspec'
 require 'rack/test'
-require 'aws_mock'
+require 'sinatra'
 
+# Configure sinatra as being in test before we include
+# index
 Sinatra::Base.set :environment, :test
 Sinatra::Base.set :run, false
 Sinatra::Base.set :raise_errors, true
 Sinatra::Base.set :logging, false
 Sinatra::Base.set :clientside_aws_testing, true
+
+require 'index'
+require 'clientside_aws'
 
 RSpec.configure do |config|
   config.include Rack::Test::Methods

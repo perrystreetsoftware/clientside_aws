@@ -13,7 +13,7 @@ helpers do
         xml.tag!(:QueueUrl, queue_name)
       end
       xml.ResponseMetadata do
-        xml.tag!(:RequestId, UUID.new.generate)
+        xml.tag!(:RequestId, SecureRandom.hex(10))
       end
     end
 
@@ -38,7 +38,7 @@ helpers do
         end
       end
       xml.ResponseMetadata do
-        xml.tag!(:RequestId, UUID.new.generate)
+        xml.tag!(:RequestId, SecureRandom.hex(10))
       end
     end
 
@@ -70,7 +70,7 @@ helpers do
         end
       end
       xml.ResponseMetadata do
-        xml.tag!(:RequestId, UUID.new.generate)
+        xml.tag!(:RequestId, SecureRandom.hex(10))
       end
     end
 
@@ -91,7 +91,7 @@ helpers do
         xml.ReceiveMessageResult do
         end
         xml.ResponseMetadata do
-          xml.tag!(:RequestId, UUID.new.generate)
+          xml.tag!(:RequestId, SecureRandom.hex(10))
         end
       end
 
@@ -161,8 +161,8 @@ helpers do
   end
 
   def send_message(queue, message_body)
-    message_id = UUID.new.generate
-    request_id = UUID.new.generate
+    message_id = SecureRandom.hex(10)
+    request_id = SecureRandom.hex(10)
     msg = {
       MessageBody: message_body,
       MessageId: message_id,

@@ -1,7 +1,5 @@
 $LOAD_PATH << "#{File.dirname(__FILE__)}/../"
 
-require 'aws-sdk'
-require 'aws-sdk-v1'
 require 'spec/spec_helper'
 
 describe 'Profiles Spec' do
@@ -160,7 +158,7 @@ describe 'Profiles Spec' do
 
   it 'v1: should list' do
     s3 = AWS::S3.new
-    bucket_name = UUID.new.generate
+    bucket_name = SecureRandom.hex(10)
     s3.buckets.create(bucket_name)
     bucket = s3.buckets[bucket_name]
     expect(bucket.exists?).to be true
@@ -173,7 +171,7 @@ describe 'Profiles Spec' do
   it 'v2: should list' do
     s3 = Aws::S3::Client.new
 
-    bucket_name = UUID.new.generate
+    bucket_name = SecureRandom.hex(10)
     s3.create_bucket(bucket: bucket_name)
     bucket = Aws::S3::Resource.new.bucket(bucket_name)
     expect(bucket.exists?).to be true
@@ -187,7 +185,7 @@ describe 'Profiles Spec' do
 
   it 'v1: should respect prefix' do
     s3 = AWS::S3.new
-    bucket_name = UUID.new.generate
+    bucket_name = SecureRandom.hex(10)
     s3.buckets.create(bucket_name)
     bucket = s3.buckets[bucket_name]
     expect(bucket.exists?).to be true
@@ -203,7 +201,7 @@ describe 'Profiles Spec' do
   it 'v2: should respect prefix' do
     s3 = Aws::S3::Client.new
 
-    bucket_name = UUID.new.generate
+    bucket_name = SecureRandom.hex(10)
     s3.create_bucket(bucket: bucket_name)
     bucket = Aws::S3::Resource.new.bucket(bucket_name)
     expect(bucket.exists?).to be true

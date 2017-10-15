@@ -21,7 +21,7 @@ helpers do
     xml.instruct!
     xml.ListAllMyBucketsResult(xmlns: 'http://s3.amazonaws.com/doc/2006-03-01') do
       xml.Owner do
-        xml.tag!(:ID, UUID.new.generate)
+        xml.tag!(:ID, SecureRandom.hex(10))
         xml.tag!(:DisplayName, 'Fake Owner')
       end
       xml.Buckets do
@@ -67,7 +67,7 @@ helpers do
           xml.tag!(:Size, size)
           xml.tag!(:Storage, 'STANDARD')
           xml.Owner do
-            xml.tag!(:ID, UUID.new.generate)
+            xml.tag!(:ID, SecureRandom.hex(10))
             xml.tag!(:DisplayName, 'fake@example.com')
           end
         end

@@ -6,7 +6,7 @@ module AWS
   class SimpleEmailService
     class SESMessage
       def initialize
-        @id = UUID.new.generate
+        @id = SecureRandom.hex(10)
       end
 
       def successful?

@@ -42,14 +42,14 @@ This launches a Sinatra app, running on port 4568, that can respond to and suppo
 For example, here's how I added clientside_aws to my Sinatra project:
 
     configure :development do
-      require '../clientside_aws/aws_mock'  
+      require 'clientside_aws'  
       DYNAMODB = AWS::DynamoDB.new(
         :access_key_id => "...",
         :secret_access_key => "...")
-      # more config 
+      # more config
     end
 
-I can then access the DynamoDB API from my code using the standard ruby aws-sdk DynamoDB class, discussed in more detail here: 
+I can then access the DynamoDB API from my code using the standard ruby aws-sdk DynamoDB class, discussed in more detail here:
 http://rubydoc.info/github/amazonwebservices/aws-sdk-for-ruby/master/AWS/DynamoDB
 
 Assuming you are including the 'aws_mock' file, you can call DynamoDB just as you normally would in your code. For example:
@@ -59,7 +59,7 @@ Assuming you are including the 'aws_mock' file, you can call DynamoDB just as yo
       :secret_access_key => "...")
 
     visitors_table = dynamo_db.tables.create("visitors", 10, 5,
-        :hash_key => { :creator_id => :number }, 
+        :hash_key => { :creator_id => :number },
         :range_key => {:date => :number})
 
     visitors_table.hash_key = [:creator_id, :number]
@@ -69,7 +69,7 @@ Assuming you are including the 'aws_mock' file, you can call DynamoDB just as yo
       visitors_table.items.put(:creator_id => 1, :date => Time.now.to_f - (60 * idx), :target_id => 10 + idx)
     end
 
-You can check out the dynamodb_spec.rb file for more unit tests and sample DynamoDB ruby code. 
+You can check out the dynamodb_spec.rb file for more unit tests and sample DynamoDB ruby code.
 
 If testing on a localhost(which you most likely are), you will need to add this line to your /etc/hosts file:
 
@@ -88,7 +88,7 @@ I am developing this code for my own test purposes as I go along. There are cert
 
 I also have very a limited test suite; I will expand as I can. Feel free to fork, add, and submit a pull request.
 
-There are clearly many more AWS services one can mock up. 
+There are clearly many more AWS services one can mock up.
 
 * * *
 

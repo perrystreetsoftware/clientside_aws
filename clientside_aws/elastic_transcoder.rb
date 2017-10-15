@@ -150,7 +150,7 @@ helpers do
     if AWS_REDIS.get "pipeline:#{args['Name']}"
       pipeline_id = AWS_REDIS.get "pipeline:#{args['Name']}"
     else
-      pipeline_id = UUID.new.generate + args['OutputBucket']
+      pipeline_id = SecureRandom.hex(10) + args['OutputBucket']
       AWS_REDIS.set "pipeline:#{pipeline_id}", args.to_json
       AWS_REDIS.set "pipeline:#{args['Name']}", pipeline_id
     end
