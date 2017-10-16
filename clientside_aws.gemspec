@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
-  spec.executables   = %w[clientside_aws_build clientside_aws_run]
+  spec.executables   = %w[clientside_aws_build clientside_aws_run clientside_aws_test]
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
 

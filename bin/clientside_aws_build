@@ -1,6 +1,7 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env bash
 
-path = File.dirname(__FILE__)
-dockerfile_path = File.join(path, '../')
+# https://stackoverflow.com/a/246128/61072
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+PARENTDIR="$(dirname "$DIR")"
 
-puts `docker build -t=clientside_aws:latest #{dockerfile_path}`
+docker build -t=clientside_aws:latest $PARENTDIR

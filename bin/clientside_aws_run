@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env bash
 
-cmd = "docker run -d --rm -p 5567:4567 --name clientside_aws clientside_aws:latest"
-puts `#{cmd}`
-
+docker run -d --rm -p 5567:4567 --name clientside_aws clientside_aws:latest

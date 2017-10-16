@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env bash
 
-cmd = "docker run -it --rm -p 6567:4567 -v ~/scruff/clientside_aws:/opt/clientside_aws --name clientside_aws_test clientside_aws bash"
-puts cmd
+docker exec -it clientside_aws rspec spec
