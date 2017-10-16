@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-# https://stackoverflow.com/a/246128/61072
-DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-PARENTDIR="$(dirname "$DIR")"
+path = File.dirname(__FILE__)
+dockerfile_path = File.join(path, '../')
 
-docker build -t=clientside_aws:latest $PARENTDIR
+system "docker build -t=clientside_aws:latest #{dockerfile_path}"

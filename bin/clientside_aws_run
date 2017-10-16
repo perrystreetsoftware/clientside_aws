@@ -1,3 +1,5 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-docker run -d --rm -p 5567:4567 --name clientside_aws clientside_aws:latest
+system 'docker run -d --rm -p 5567:4567 --name clientside_aws ' \
+       'clientside_aws:latest'

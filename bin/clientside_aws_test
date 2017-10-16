@@ -1,3 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-docker exec -it clientside_aws rspec spec
+system 'docker exec -it --rm clientside_aws rspec spec'
