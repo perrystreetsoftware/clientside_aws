@@ -27,5 +27,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'httparty', '~> 0.15'
   spec.add_dependency 'json', '~> 1.8'
   spec.add_dependency 'webmock', '~> 3.1'
-  spec.add_dependency 'rspec', '~> 2.14.1'
+  spec.add_dependency 'rspec', '~> 2.14'
 end
