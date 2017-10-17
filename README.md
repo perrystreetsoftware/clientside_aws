@@ -1,6 +1,24 @@
 clientside_aws
 ===================
 
+Run selected AWS services via a docker container locally, for more effective development and testing.
+
+## Install
+
+In your gemfile:
+
+    gem 'clientside_aws', require: 'clientside_aws'
+
+## Features
+
+- Write code on a plane: Interact with AWS services like S3, SQS and DynamoDb, without internet access
+- No more tedious configuration of mocked responses in your unit tests
+- Save time and money by avoiding the need for a 'test' account in AWS where you upload S3 files and interact with DynamoDb databases along with other developers on your team
+- Instantly restore your development and test environments to known good states
+
+Think about how 
+
+
 This code is meant to be used by developers who are attempting to build web applications on AWS but wish to run client-side testing and validation. Presently, this project mocks DynamoDB and SQS.
 
 While creating and tearing down "free-tier" SQS and DynamoDB databases may be an acceptable solution for some, the time required (tens of seconds or minutes) quickly makes TDD (test-driven development) impractical. Just like we can use an in-memory sqlite3-based solution for mocking Mysql databases with ActiveRecord, we can now  mock SQS and DynamoDB databases in memory using Redis.
