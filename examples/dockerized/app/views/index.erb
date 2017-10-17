@@ -1,11 +1,11 @@
 <html>
   <head>
-    <title>Clientside AWS Test</title>
+    <title>clientside_aws test app</title>
   </head>
   <body>
-    <p>
-      Upload an image
-    </p>
+    <h1>
+      Upload an image to clientside_aws S3
+    </h1>
     <p>
       <form method='post' action='/image' enctype='multipart/form-data'>
         File: <input type="file" name="image" id="image"/>
@@ -13,7 +13,7 @@
       </form>
     </p>
     <hr>
-    <p>Here is the image:</p>
+    <h1>Here is the image, loaded directly from clientside_aws S3:</h1>
     <image src='/image' />
   </body>
 </html>

@@ -1,15 +1,17 @@
 version: '2'
 services:
-  app: 
+  app:
     image: clientside_aws_test_app
     container_name: clientside_aws_test_app
     links:
       - aws
-    build: 
+    build:
       context: ./
       dockerfile: ./Dockerfile
     command:
       /sbin/my_init
+    ports:
+      - '4567'
   aws:
     image: clientside_aws:latest
     container_name: clientside_aws_test_aws
@@ -19,4 +21,3 @@ services:
     command: /sbin/my_init
     ports:
       - '4567'
-

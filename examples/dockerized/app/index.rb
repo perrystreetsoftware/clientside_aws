@@ -19,12 +19,19 @@ post '/image' do
 
   bucket = Aws::S3::Resource.new.bucket('test')
 
-  # Now, store a JSON document
+  # Now, store an image
   object = bucket.object('image')
-  object.put(body: params['data'], content_type: 'image/jpeg')
+  file = File.open(params[:image][:tempfile].path, 'rb')
+  image = file.read
+  file.close
+
+  object.put(body: image, content_type: 'image/jpeg')
+
+  redirect '/'
 end
 
 get '/image' do
+  bucket = Aws::S3::Resource.new.bucket('test')
   object = bucket.object('image')
 
   content_type 'image/jpeg'
