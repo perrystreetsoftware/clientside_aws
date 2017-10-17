@@ -1,5 +1,3 @@
-require 'uuid'
-
 module AWS
   # Mock SES and enable retrieval of last message sent
   # We also save messages to message_directory, if set

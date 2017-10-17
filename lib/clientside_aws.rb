@@ -4,6 +4,8 @@
 # docker container
 
 require File.dirname(__FILE__) + '/clientside_aws/configuration'
+require 'aws-sdk-v1'
+require 'aws-sdk'
 
 module ClientsideAws
   require File.dirname(__FILE__) + '/clientside_aws/version'
