@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/ruby /opt/app/index.rb -o 0.0.0.0

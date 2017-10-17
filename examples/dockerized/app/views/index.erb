@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <title>Clientside AWS Test</title>
+  </head>
+  <body>
+    <p>
+      Upload an image
+    </p>
+    <p>
+      <form method='post' action='/image' enctype='multipart/form-data'>
+        File: <input type="file" name="image" id="image"/>
+        <input type="submit" value="Upload Image" name="submit"/>
+      </form>
+    </p>
+    <hr>
+    <p>Here is the image:</p>
+    <image src='/image' />
+  </body>
+</html>
