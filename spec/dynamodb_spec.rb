@@ -28,7 +28,6 @@ describe 'Profiles Spec' do
 
     expect(dynamo_db.tables.to_a.length).to eq 1
     expect(dynamo_db.tables['test1'].exists?).to be true
-    # dynamo_db.tables['test_fake'].exists?.should be_false # this test fails for some reason
 
     test_table.hash_key = [:creator_id, :number]
     test_table.range_key = [:date, :number]
@@ -203,14 +202,14 @@ describe 'Profiles Spec' do
     ct = 0
     results = visitors_table.items.query(hash_value: 1, scan_index_forward: false)
     results.to_a.each do |item|
-      item.attributes['target_id'].to_i.should == 10 + ct
+      expect(item.attributes['target_id'].to_i).to eq 10 + ct
       ct += 1
     end
 
     ct = 0
     results = visitors_table.items.query(hash_value: 1)
     results.to_a.each do |item|
-      item.attributes['target_id'].to_i.should == 20 - ct
+      expect(item.attributes['target_id'].to_i).to eq 20 - ct
       ct += 1
     end
 
@@ -226,7 +225,7 @@ describe 'Profiles Spec' do
       visitors2_table.items.put(profile_id: idx, date_profile: "#{timestamp}:#{profile_id}", target_id: profile_id)
     end
     results = visitors2_table.items.query(hash_value: 1)
-    results.to_a.length.should == 1
+    expect(results.to_a.length).to eq 1
   end
 
   it 'v2: test vistors' do
@@ -421,7 +420,7 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 1
+    expect(results[:member].length).to eq 1
 
     dynamo_db.delete_item(table_name: 'cd_table', key: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '2' } })
 
@@ -443,7 +442,7 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 0
+    expect(results[:member].length.zero?).to be true
   end
 
   it 'v2: should handle create, delete' do
@@ -583,25 +582,25 @@ describe 'Profiles Spec' do
     dynamo_db.put_item(table_name: 'visited_by', item: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '2' },
                                                          'timestamp' => { 'n' => 3.to_s } })
     item = dynamo_db.get_item(table_name: 'visited_by', key: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '2' } })
-    item.should_not be_nil
-    item[:item]['profile_id'][:n].should == '1'
-    item[:item]['timestamp'][:n].should == '3'
+    expect(item).not_to be_nil
+    expect(item[:item]['profile_id'][:n]).to eq '1'
+    expect(item[:item]['timestamp'][:n]).to eq '3'
 
     # 2 visits 1 again
     dynamo_db.put_item(table_name: 'visited_by', item: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '2' },
                                                          'timestamp' => { 'n' => 4.to_s } })
     item = dynamo_db.get_item(table_name: 'visited_by', key: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '2' } })
-    item.should_not be_nil
-    item[:item]['profile_id'][:n].should == '1'
-    item[:item]['timestamp'][:n].should == '4'
+    expect(item).not_to be_nil
+    expect(item[:item]['profile_id'][:n]).to eq '1'
+    expect(item[:item]['timestamp'][:n]).to eq '4'
 
     # 2 visits 1 a third time, with timestamp of now
     dynamo_db.put_item(table_name: 'visited_by', item: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '2' },
                                                          'timestamp' => { 'n' => now.to_s } })
 
     item = dynamo_db.get_item(table_name: 'visited_by', key: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '2' } })
-    item.should_not be_nil
-    item[:item]['profile_id'][:n].should == '1'
+    expect(item).not_to be_nil
+    expect(item[:item]['profile_id'][:n]).to eq '1'
 
     item = dynamo_db.get_item(table_name: 'visited_by', key: { 'profile_id' => { 'n' => '2' }, 'visitor_id' => { 'n' => '2' } })
     expect(item[:item]).to be_nil
@@ -621,7 +620,7 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 1
+    expect(results[:member].length).to eq 1
 
     # Try the local secondary index
     results = dynamo_db.query(table_name: 'visited_by', index_name: 'ls_index', select: 'ALL_PROJECTED_ATTRIBUTES', key_conditions: {
@@ -638,7 +637,7 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 1
+    expect(results[:member].length).to eq 1
 
     results = dynamo_db.query(table_name: 'visited_by', index_name: 'ls_index', select: 'ALL_PROJECTED_ATTRIBUTES', key_conditions: {
                                 'profile_id' => {
@@ -654,7 +653,7 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 0
+    expect(results[:member].length).to eq 0
 
     dynamo_db.put_item(table_name: 'visited_by', item: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '3' }, 'timestamp' => { 'n' => Time.now.utc.to_i.to_s } })
     dynamo_db.put_item(table_name: 'visited_by', item: { 'profile_id' => { 'n' => '1' }, 'visitor_id' => { 'n' => '4' }, 'timestamp' => { 'n' => Time.now.utc.to_i.to_s } })
@@ -673,7 +672,7 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 3
+    expect(results[:member].length).to eq 3
 
     # Add some more profiles visited by 2
     (3...10).each do |idx|
@@ -695,9 +694,9 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 8
-    results[:member].first['profile_id'][:n].should == '9'
-    results[:member].last['profile_id'][:n].should == '1'
+    expect(results[:member].length).to eq 8
+    expect(results[:member].first['profile_id'][:n]).to eq '9'
+    expect(results[:member].last['profile_id'][:n]).to eq '1'
 
     # reverse
     results = dynamo_db.query(table_name: 'visited_by',
@@ -716,9 +715,9 @@ describe 'Profiles Spec' do
                                   ]
                                 }
                               })
-    results[:member].length.should == 8
-    results[:member].first['profile_id'][:n].should == '1'
-    results[:member].last['profile_id'][:n].should == '9'
+    expect(results[:member].length).to eq 8
+    expect(results[:member].first['profile_id'][:n]).to eq '1'
+    expect(results[:member].last['profile_id'][:n]).to eq '9'
   end
 
   it 'v2: should handle local secondary indexes' do
