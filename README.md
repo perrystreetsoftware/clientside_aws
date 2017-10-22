@@ -7,7 +7,7 @@
 
 # Installation
 
-There are two parts to installation: including the `clientside_aws` gem in your application, and running a docker container that mocks the AWS services.
+There are two parts to installation: running a docker container that mocks the AWS services, and including the `clientside_aws` gem in your application.
 
 ## Container configuration
 
