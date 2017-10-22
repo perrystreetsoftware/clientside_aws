@@ -1,9 +1,30 @@
-# Features
+# Benefits
+
+If you require the Internet to develop and test your next ruby application, then **your dev environment is broken**.
+
+With Clientside AWS, you can:
 
 - Write code on a plane: Interact with AWS services like S3, SQS and DynamoDb, without Internet access
-- No more tedious configuration of mocked responses in your unit tests
+- Eliminate tedious configuration of WebMock-powered mock AWS responses in your unit tests
 - Save time and money by avoiding the need for a test account in AWS where you upload S3 files and interact with DynamoDb databases along with other developers on your team
-- Instantly restore your development and test environments to known good states
+- Instantly restore your development and test environments to Known Good States
+
+# Alternatives
+
+### [Fake S3](https://github.com/jubos/fake-s3)
+
+Pro: Very complete implementation of the AWS S3 protocol.
+Cons: Nonstandard license; no support for running docker; only mocks S3 (not other services)
+
+### [DynamoDB local](https://aws.amazon.com/blogs/aws/dynamodb-local-for-desktop-development/)
+
+Pros: Complete implementation of the DynamoDB protocol
+Cons: Requires java installation locally; no docker support
+
+### [LocalStack](https://github.com/localstack/localstack)
+
+Pros: Implementations of a large number of AWS services; uses docker; supported by Atlassian.
+Cons: Unclear licensing; probably not free in the long-run. Does not offer ruby bindings.
 
 # Installation
 
