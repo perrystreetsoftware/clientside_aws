@@ -1,120 +1,104 @@
-clientside_aws
-===================
+# Features
 
-Run selected AWS services via a docker container locally, for more effective development and testing.
+- Write code on a plane: Interact with AWS services like S3, SQS and DynamoDb, without Internet access
+- No more tedious configuration of mocked responses in your unit tests
+- Save time and money by avoiding the need for a test account in AWS where you upload S3 files and interact with DynamoDb databases along with other developers on your team
+- Instantly restore your development and test environments to known good states
 
-## Install
+# Installation
+
+There are two parts to installation: including the `clientside_aws` gem in your application, and running a docker container that mocks the AWS services.
+
+## Container configuration
+
+From OSX, type:
+
+    gem install clientside_aws
+
+This will install a gem and a script that lets you build the Clientside AWS docker image. Once the `clientside_aws` gem is installed locally on OSX, you will need to build the Clientside AWS docker image. Run:
+
+    clientside_aws_build
+
+Once that docker image is built, it will be available for you to manually launch or include in `docker-compose.yml` files.
+
+    $ docker images
+    REPOSITORY                           TAG                 IMAGE ID            CREATED             SIZE
+    clientside_aws                       latest              fec78caf81be        just now            881MB
+    mysql                                5.7                 e27c7a14671f        20 months ago       361MB
+    redis                                latest              93a08017b97e        22 months ago       151MB
+    memcached                            latest              355142d48ea3        22 months ago       132MB
+
+To manually launch a docker container running Clientside AWS, run:
+
+    docker run -d --rm -p <YOUR_PREFERRED_PORT>:4567 --name clientside_aws clientside_aws:latest
+
+Or, run:
+
+    clientside_aws_run
+
+To include in a `docker-compose.yml` file, see [the example](/examples/dockerized/docker-compose.yml).
+
+## Application configuration
 
 In your gemfile:
 
     gem 'clientside_aws', require: 'clientside_aws'
 
-## Features
+Then, at the top of your application where you are configuring global services, type:
 
-- Write code on a plane: Interact with AWS services like S3, SQS and DynamoDb, without internet access
-- No more tedious configuration of mocked responses in your unit tests
-- Save time and money by avoiding the need for a 'test' account in AWS where you upload S3 files and interact with DynamoDb databases along with other developers on your team
-- Instantly restore your development and test environments to known good states
+    config = { region: 'us-mockregion-1',
+               access_key_id: '...',
+               secret_access_key: '...' }
 
-Think about how 
+    Aws.config.update(config)
+    AWS.config(config)
 
+You can see that you do not need to specify a valid access_key_id nor secret_access_key, but you must set the region to be `us-mockregion-1` -- this is how Clientside AWS identifies and redirects requests to AWS services.
 
-This code is meant to be used by developers who are attempting to build web applications on AWS but wish to run client-side testing and validation. Presently, this project mocks DynamoDB and SQS.
+Clientside AWS is also capable of mocking requests from the v1 and v2 versions of the [aws-sdk-ruby](https://github.com/aws/aws-sdk-ruby) gem. It is not yet tested with v3.
 
-While creating and tearing down "free-tier" SQS and DynamoDB databases may be an acceptable solution for some, the time required (tens of seconds or minutes) quickly makes TDD (test-driven development) impractical. Just like we can use an in-memory sqlite3-based solution for mocking Mysql databases with ActiveRecord, we can now  mock SQS and DynamoDB databases in memory using Redis.
+See [the example](/examples/dockerized/app/index.rb) for how to configure Clientside AWS in your application.
 
-To run this code, you will need ruby, sinatra, httparty, and the json and redis rubygems. I also use the sinatra/reloader gem to aid in development, but it is not necessary.
+# Classic development approach
 
-You will also need redis-server installed locally
+![Classic approach diagram](/examples/documentation/classic_model.png)
 
-Make sure redis-server is in your path
+In the classic approach to development, you would install application services like mysql, redis and memcached locally on OSX. You would then install the ruby runtime, with tools like [rvm](https://rvm.io/). With luck, you wouldn't encounter OSX-specific bugs, [like this one](https://blog.phusion.nl/2017/10/13/why-ruby-app-servers-break-on-macos-high-sierra-and-what-can-be-done-about-it/).
 
-Then, from the command line, run:
+When you needed to interact with AWS services, you would either use [WebMock](https://github.com/bblimke/webmock) to provide a known response to outbound requests (probably in your rspec tests), and for development you would create a test account on AWS that had empty S3 buckets and DynamoDb databases. This account might have been shared with other developers, and could (over time) get polluted with development data. It was flushed infrequently, if ever. It also cost money, even if a nominal amount.
 
-    ruby spec/dynamodb_spec.rb
-or
+# Clientside AWS approach
 
-    ruby spec/sqs_spec.rb
+With Clientside AWS, you have two approaches to configuring your application services: Partial or Full Docker.
 
-That will run the unit tests against this code.
+## Partial docker
 
-Overview
---------
+![Partial docker diagram](/examples/documentation/partial_docker.png)
 
-This code works by overwriting the AWS service URLs in the aws-sdk gem, then monkeypatching the AWS::Core::Client request methods to use Rack's put, get, post and delete methods (see aws_mock.rb). This points to a Sinatra endpoint that processes the DynamoDB requests. Provided you are using the DynamoDB methods defined in aws-sdk when running tests and validations, the ruby client never knows it isn't talking to the real service.
+With the partial docker approach, you continue to install runtime environments locally on OSX like [rvm](https://rvm.io/), but you also install [Docker for Mac](https://www.docker.com/docker-mac), on which you launch a container running Clientside AWS. You then `require clientside_aws` in your application which redirects AWS requests to the container. You also may consider running other services, like mysql, memcached and redis, inside a docker container.
 
-I have not packaged this up as a gem, because it needs to be a standalone sinatra project so you can launch a server from the command line (see below). I am open to suggestions about how to make it easier/cleaner to include dynamodb_mock into your actual project; right now you have to use a require statement that has knowledge of your directory structure.
+See [this example](/examples/local/) for how to configure a partial docker development approach.
 
-Adding to your project
----------------------------
+## Full docker
 
-First, if you plan on running any rspec unit tests, you should update the REDIS_PATH variable in spec_helper.rb to point to your redis binary.
+![Full docker diagram](/examples/documentation/full_docker.png)
 
-To start clientside_aws stand-alone, from the command line, run:
+With the full docker approach, you do 100% of your web application development from within Docker. Your OSX laptop only need to have a web browser, a text editor, and docker installed (and if you are doing mobile development, Xcode/Android Studio).
 
-    cd ~/clientside_aws/
-    ruby index.rb -p 4568
+When developing with the full docker approach, your application runtime it itself running in a container. However, because your application code will be changing and churning constantly, it doesn't make sense to run a COPY command and seal it up, as one normally does with docker containers that you are shipping to other places. Instead, you mount your local OSX filesystem into an Ubuntu container, on which you have also installed the ruby runtime. You also execute an interactive bash script on that container, so you can easily do things like stop and restart your web server. This container creates network links between itself and your other services, including Clientside AWS, mysql, redis, memcached, postgres, etc.
 
-This launches a Sinatra app, running on port 4568, that can respond to and support various services using the AWS protocol. You have your own, client-side SQS and DynamoDB server! If you are capable of mocking the requests in your language of choice to point to localhost:4568 you are ready to go. Included in this project is the code to mock in Ruby.
-
-For example, here's how I added clientside_aws to my Sinatra project:
-
-    configure :development do
-      require 'clientside_aws'  
-      DYNAMODB = AWS::DynamoDB.new(
-        :access_key_id => "...",
-        :secret_access_key => "...")
-      # more config
-    end
-
-I can then access the DynamoDB API from my code using the standard ruby aws-sdk DynamoDB class, discussed in more detail here:
-http://rubydoc.info/github/amazonwebservices/aws-sdk-for-ruby/master/AWS/DynamoDB
-
-Assuming you are including the 'aws_mock' file, you can call DynamoDB just as you normally would in your code. For example:
-
-    dynamo_db = AWS::DynamoDB.new(
-      :access_key_id => "...",
-      :secret_access_key => "...")
-
-    visitors_table = dynamo_db.tables.create("visitors", 10, 5,
-        :hash_key => { :creator_id => :number },
-        :range_key => {:date => :number})
-
-    visitors_table.hash_key = [:creator_id, :number]
-    visitors_table.range_key = [:date, :number]
-
-    (0..10).each do |idx|      
-      visitors_table.items.put(:creator_id => 1, :date => Time.now.to_f - (60 * idx), :target_id => 10 + idx)
-    end
-
-You can check out the dynamodb_spec.rb file for more unit tests and sample DynamoDB ruby code.
-
-If testing on a localhost(which you most likely are), you will need to add this line to your /etc/hosts file:
-
-127.0.0.1  test.localhost
-
-Amazon sticks the bucket to the front of the localhost to create a subdomain
+See [this example](/examples/dockerized/) for how to figure a full docker development approach.
 
 TODO
---------------------
+=======
+* Add support for V3 of the aws-sdk gem
 
-I am developing this code for my own test purposes as I go along. There are certainly bugs and I have not yet implemented all the DynamoDB methods. Code lacks support at this time for the following:
-
-* Scan
-* UpdateTable
-* BatchGetItem
-
-I also have very a limited test suite; I will expand as I can. Feel free to fork, add, and submit a pull request.
-
-There are clearly many more AWS services one can mock up.
-
-* * *
 
 License
 =======
-MIT License (http://en.wikipedia.org/wiki/MIT_License). Some parts of this code were adapted from the aws-sdk project, which can be found at: https://github.com/amazonwebservices/aws-sdk-for-ruby and is itself licensed under the Apache 2.0 license.
+[MIT License](http://en.wikipedia.org/wiki/MIT_License). Some parts of this code were adapted from the [aws-sdk project](https://github.com/aws/aws-sdk-core-ruby), which is itself licensed under the Apache 2.0 license.
 
-Copyright (C) 2012 Perry Street Software, Inc.
+Copyright (C) 2012-2017 Perry Street Software, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
