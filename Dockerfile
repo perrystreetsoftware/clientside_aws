@@ -11,7 +11,7 @@ RUN mkdir /mnt/redis
 
 RUN apt-add-repository ppa:brightbox/ruby-ng -y
 RUN apt-get update && apt-get install -y ruby2.4 ruby2.4-dev git-core build-essential zlib1g-dev
-RUN apt-get install -y wget curl
+RUN apt-get install -y wget curl telnet
 
 RUN cd /opt ; wget "http://download.redis.io/releases/redis-2.8.24.tar.gz"
 RUN cd /opt ; gunzip redis-2.8.24.tar.gz ; tar -xvf redis-2.8.24.tar
