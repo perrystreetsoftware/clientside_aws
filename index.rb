@@ -11,6 +11,7 @@ require 'base64'
 require 'rack'
 require 'rack/cors'
 require 'rack/protection'
+require 'aws-sdk'
 
 ENV['RACK_ENV'] = 'development' unless ENV['RACK_ENV']
 
@@ -50,6 +51,14 @@ configure :development do
 end
 
 DYNAMODB_PREFIX = 'DynamoDBv20110924'.freeze
+
+S3_CONFIG = {
+  region: 'us-mockregion-1',
+  access_key_id: '...',
+  secret_access_key: '...',
+  force_path_style: true,
+  endpoint: 'http://app_rspec_localstack:4572'
+}.freeze
 
 get '/' do
   'hello'

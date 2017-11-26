@@ -1,17 +1,36 @@
 helpers do
+  def read_s3_input(bucket:, path:)
+    bucket = Aws::S3::Resource.new(S3_CONFIG).bucket(bucket)
+    object = bucket.object(path)
+
+    object.get.body.read if object.exists?
+  end
+
+  def write_s3_output(bucket:, path:, data:, content_type:)
+    bucket_obj = Aws::S3::Resource.new(S3_CONFIG).bucket(bucket)
+    object = bucket_obj.object(path)
+
+    object.put(body: data,
+               content_type: content_type,
+               acl: 'private')
+    puts "JUST WROTE #{bucket} path #{path} data #{data.length}"
+  end
+
   def encode_video(source_key, dest_key, pipeline_id)
     pipeline = JSON.parse(AWS_REDIS.get("pipeline:#{pipeline_id}"))
-    bucket = pipeline['InputBucket']
+    input_bucket = pipeline['InputBucket']
     input_obj_name = source_key
-    input_obj_key = "s3:bucket:#{bucket}:#{input_obj_name}"
 
-    bucket = pipeline['OutputBucket']
+    input_data = read_s3_input(bucket: input_bucket,
+                               path: input_obj_name)
+
+    output_bucket = pipeline['OutputBucket']
     output_obj_name = dest_key
-    output_obj_key = "s3:bucket:#{bucket}:#{output_obj_name}"
-    input_obj_body = AWS_REDIS.hget input_obj_key, 'body'
+    # output_obj_key = "s3:bucket:#{bucket}:#{output_obj_name}"
+    # input_obj_body = AWS_REDIS.hget input_obj_key, 'body'
 
     tmp = Tempfile.new(source_key)
-    tmp.write(input_obj_body)
+    tmp.write(input_data)
     tmp.close
 
     # Setup paths
@@ -37,8 +56,10 @@ helpers do
       video = file.read
       file.close
 
-      AWS_REDIS.hset output_obj_key, 'body', video
-      AWS_REDIS.hset output_obj_key, 'content-type', 'video/mp4'
+      write_s3_output(bucket: output_bucket,
+                      path: output_obj_name,
+                      data: video,
+                      content_type: 'video/mp4')
 
       begin
         File.delete(final_path) if File.exist?(final_path)
