@@ -57,7 +57,7 @@ S3_CONFIG = {
   access_key_id: '...',
   secret_access_key: '...',
   force_path_style: true,
-  endpoint: 'http://app_rspec_localstack:4572'
+  endpoint: 'http://localstack:4572'
 }.freeze
 
 get '/' do
