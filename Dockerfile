@@ -29,7 +29,7 @@ RUN mkdir /etc/redis
 RUN cd /opt/redis-2.8.24 ; cat redis.conf | sed "s/dir \.\//dir \/mnt\/redis\//" > /etc/redis/redis.conf
 
 # Now, fetch clientside aws
-RUN gem install bundler
+RUN gem install bundler -v 1.16.6
 RUN cd /opt
 COPY . /opt/clientside_aws/
 RUN cd /opt/clientside_aws ; bundle install
