@@ -4,7 +4,7 @@ source 'https://rubygems.org'
 
 # These are gem dependencies for our Docker image,
 # not for our Gemfile which points clients to our docker image
-gem 'aws-sdk', '~> 2.11'
+gem 'aws-sdk', '~> 3.0', '>= 3.0.1'
 gem 'aws-sdk-v1'
 gem 'builder', '~> 3.2'
 gem 'httparty', '0.15.6'
